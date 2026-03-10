@@ -100,8 +100,8 @@ export function wrapComposerTextarea(textarea, app) {
 }
 
 /**
- * Preview-on-click mode: eye is in composer footer (via TextEditor extend). No toolbar here.
- * Toggle is driven by custom event 'flarum-preview-toggle' from the footer button.
+ * Preview-on-click mode: eye button is injected into the composer controls via DOM
+ * (no TextEditor extend) to avoid conflicts with other extensions. Default .item-preview is hidden with CSS.
  */
 function attachPreviewOnClickMode(textarea, app) {
   if (textarea[ATTR_WRAPPED]) return () => {};
@@ -127,6 +127,8 @@ function attachPreviewOnClickMode(textarea, app) {
 
   let showingPreview = false;
   let lastHtml = '';
+  let injectedEye = null;
+  let observer = null;
 
   function getComposerEl() {
     return textarea.closest && textarea.closest('.Composer');
@@ -154,21 +156,72 @@ function attachPreviewOnClickMode(textarea, app) {
     }
     const composer = getComposerEl();
     if (composer) composer.setAttribute('data-preview-visible', showingPreview ? 'true' : 'false');
-    if (typeof m !== 'undefined' && m.redraw) m.redraw();
+    updateInjectedButtonActive();
   }
 
-  function onToggle(e) {
-    if (e.target && e.target.contains && e.target.contains(textarea)) toggle();
+  function updateInjectedButtonActive() {
+    if (!injectedEye) return;
+    const btn = injectedEye.querySelector && injectedEye.querySelector('button');
+    if (btn) {
+      if (showingPreview) btn.classList.add('active'); else btn.classList.remove('active');
+    }
   }
 
-  document.addEventListener('flarum-preview-toggle', onToggle);
+  function injectEyeButton() {
+    const composer = getComposerEl();
+    if (!composer) return;
+    const list = composer.querySelector('ul');
+    if (!list || !list.querySelector) return;
+    if (list.querySelector('[data-preview-eye-injected]')) return;
+
+    const submitLi = list.querySelector('.item-submit');
+    const defaultPreviewLi = list.querySelector('.item-preview');
+    const insertBefore = submitLi || defaultPreviewLi || list.firstChild;
+
+    const li = document.createElement('li');
+    li.className = 'item-preview PreviewEyeItem';
+    li.setAttribute('data-preview-eye-injected', '1');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'Button Button--icon hasIcon PreviewToggleBtn';
+    btn.setAttribute('aria-label', 'Preview');
+    btn.title = 'Preview';
+    btn.innerHTML = '<i class="icon far fa-eye Button-icon" aria-hidden="true"></i><span class="Button-label"></span>';
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      toggle();
+    });
+    li.appendChild(btn);
+    list.insertBefore(li, insertBefore);
+    injectedEye = li;
+    composer.classList.add('Composer--previewClickMode');
+    updateInjectedButtonActive();
+  }
+
+  function ensureEyeInjected() {
+    const composer = getComposerEl();
+    if (!composer || !textarea[ATTR_WRAPPED]) return;
+    if (!composer.querySelector('[data-preview-eye-injected]')) injectEyeButton();
+  }
+
+  observer = new MutationObserver(() => {
+    ensureEyeInjected();
+  });
+  const composerRoot = getComposerEl();
+  if (composerRoot) {
+    observer.observe(composerRoot, { childList: true, subtree: true });
+    setTimeout(ensureEyeInjected, 0);
+  }
 
   textarea[ATTR_WRAPPED] = '1';
   return () => {
-    document.removeEventListener('flarum-preview-toggle', onToggle);
+    if (observer) observer.disconnect();
+    if (injectedEye && injectedEye.parentNode) injectedEye.parentNode.removeChild(injectedEye);
+    injectedEye = null;
+    const composerEl = getComposerEl();
+    if (composerEl) composerEl.classList.remove('Composer--previewClickMode');
     textarea.removeAttribute(ATTR_WRAPPED);
-    const composer = getComposerEl();
-    if (composer) composer.removeAttribute('data-preview-visible');
+    if (composerEl) composerEl.removeAttribute('data-preview-visible');
     if (wrap.parentNode) {
       wrap.parentNode.insertBefore(textarea, wrap);
       wrap.remove();

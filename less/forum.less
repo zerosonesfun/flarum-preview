@@ -91,12 +91,12 @@
   padding: 0.5em 0;
 }
 
-/* Preview-on-click mode: eye in composer footer (no toolbar). Active state when preview visible. */
-.PreviewComposerWrap--clickMode .PreviewClickToolbar {
-  display: none;
+/* Preview-on-click mode: hide Flarum's default preview button; we inject our own (DOM) to avoid extend conflicts. */
+.Composer--previewClickMode .item-preview:not([data-preview-eye-injected]) {
+  display: none !important;
 }
 
 .Composer[data-preview-visible='true'] .PreviewToggleBtn.active,
-.Composer[data-preview-visible='true'] .item-preview .PreviewToggleBtn {
+.Composer[data-preview-visible='true'] .PreviewEyeItem .PreviewToggleBtn {
   opacity: 1;
 }
