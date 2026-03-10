@@ -20,7 +20,9 @@ return [
 
     (new Extend\Settings())
         ->default('zerosonesfun_preview.debounce_ms', 300)
-        ->default('zerosonesfun_preview.hide_raw', false)
         ->default('zerosonesfun_preview.instant_triggers', true)
-        ->default('zerosonesfun_preview.preview_on_click_mode', false),
+        ->default('zerosonesfun_preview.preview_on_click_mode', false)
+        ->serializeToForum('previewDebounceMs', 'zerosonesfun_preview.debounce_ms', null, '300')
+        ->serializeToForum('previewInstantTriggers', 'zerosonesfun_preview.instant_triggers', null, '1')
+        ->serializeToForum('previewOnClickMode', 'zerosonesfun_preview.preview_on_click_mode', null, '0'),
 ];

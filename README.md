@@ -1,10 +1,33 @@
 # Preview (zerosonesfun/flarum-preview)
 
-Live visual preview overlay for the Flarum composer. The **textarea remains the single source of truth** (raw Markdown/BBCode); the preview is a mirror overlay that shows rendered content while you type.
+Live preview for the Flarum composer. **Textarea is always the source of truth** (raw Markdown/BBCode); preview is either a split panel below the editor or a full toggle via the eye button.
+
+## What the plugin does (current behavior)
+
+- **Default (Preview on click OFF)**  
+  - Composer: top ~3/4 = textarea, bottom ~1/4 = **split preview panel** (server-rendered HTML, debounced).  
+  - Tap the preview panel header to **expand/collapse** the bottom area (slide, more/less preview).  
+  - Preview updates as you type (debounce + optional instant triggers).  
+  - Click-to-edit: click a link in the preview → focus textarea and select that range.
+
+- **Preview on click ON**  
+  - **Split view is hidden.** No bottom preview panel.  
+  - **Eye button** appears in the composer footer **next to the submit button** (both **Post Reply** and **Post Discussion**).  
+  - Reply composer: Flarum’s default preview button is replaced by ours.  
+  - Click eye → **full preview** (textarea hidden, only rendered HTML). Click again → back to textarea.
+
+- **Settings**  
+  - **Preview debounce (ms):** Delay before calling `POST /api/preview` (default 300).  
+  - **Instant triggers:** If ON, preview is requested immediately on certain keystrokes (e.g. closing `**`, ` ``` `) as well as after debounce.  
+  - **Preview on click:** See above; when ON, split view is off and eye toggles full preview.
+
+- **Backend**  
+  - `POST /api/preview`: body `{ content }` → JSON with rendered HTML (Flarum Formatter).  
+  - Client uses tokenizer for mapping (click-to-edit) and template detection; all rendering is server-side.
 
 ## How it works
 
-- **Mirror-overlay**: The composer textarea is wrapped in a container. A preview layer (a `div`) is positioned behind/beneath the textarea. The textarea text can be dimmed or made transparent; the caret stays visible. You type in the real textarea; the preview layer shows the server-rendered HTML.
+- **Split view (default):** The composer body is wrapped: textarea in the top portion, a preview panel below. The panel shows server-rendered HTML; you can expand/collapse it by tapping its header.
 - **Server preview**: Content is sent to `POST /api/preview` (same pipeline as Flarum’s TextFormatter: Markdown + BBCode + extensions). The extension registers this route and uses Flarum’s `Formatter` to parse and render.
 - **Client tokenizer**: A small client-side tokenizer recognizes common Markdown (headings, bold, italic, code, lists, links, images, blockquotes). It is used only to:
   - Map rendered DOM back to source ranges so **click-to-edit** works (e.g. click a link in the preview to focus the textarea and select the raw `[text](url)`).
@@ -43,8 +66,6 @@ This produces `js/dist/forum.js` and `js/dist/admin.js`. Use `npm run dev` for w
   When ON: live preview is off; users use an eye icon to toggle between raw composer and preview.
 - **Preview debounce (ms)**  
   Delay before sending content to the server (default 300).
-- **Hide raw markdown in composer**  
-  When ON: typed text is transparent so only the preview is visible (caret remains visible).
 - **Instant preview triggers**  
   When ON: preview is requested immediately on certain keystrokes (e.g. closing `**` or ` ``` `) instead of only after debounce.
 

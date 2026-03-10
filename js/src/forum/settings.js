@@ -1,15 +1,16 @@
 /**
- * Read extension settings from Flarum app payload.
- * Keys: zerosonesfun_preview.debounce_ms, .hide_raw, .instant_triggers, .preview_on_click_mode
+ * Read extension settings from Flarum forum payload (serializeToForum in extend.php).
+ * Uses app.forum.attribute() so settings work on the forum frontend.
  */
 
 export function getSettings(app) {
-  const s = (app.data && app.data.settings) || {};
-  const key = (k) => s[`zerosonesfun_preview.${k}`] ?? null;
+  const attr = (key) => app.forum && app.forum.attribute ? app.forum.attribute(key) : undefined;
+  const debounceRaw = attr('previewDebounceMs');
+  const instantRaw = attr('previewInstantTriggers');
+  const clickModeRaw = attr('previewOnClickMode');
   return {
-    debounceMs: parseInt(key('debounce_ms'), 10) || 300,
-    hideRaw: key('hide_raw') === '1' || key('hide_raw') === true,
-    instantTriggers: key('instant_triggers') !== '0' && key('instant_triggers') !== false,
-    previewOnClickMode: key('preview_on_click_mode') === '1' || key('preview_on_click_mode') === true,
+    debounceMs: Math.max(0, parseInt(debounceRaw, 10) || 300),
+    instantTriggers: instantRaw !== '0' && instantRaw !== false,
+    previewOnClickMode: clickModeRaw === '1' || clickModeRaw === true,
   };
 }

@@ -1,18 +1,14 @@
 /**
- * Wraps the Flarum composer textarea with a mirror-overlay preview layer.
- * Single source of truth: the textarea. Preview layer is visually behind/beneath with same size/scroll.
+ * Wraps the Flarum composer: top ~3/4 textarea, bottom ~1/4 preview panel.
+ * Tap the preview panel header to expand/collapse. Single source of truth: textarea.
  */
 
 import { createPreviewLayer } from './previewLayer.js';
 import { getSettings } from './settings.js';
 
 const WRAP_CLASS = 'PreviewComposerWrap';
-const LAYER_CLASS = 'PreviewLayer';
 const ATTR_WRAPPED = 'data-preview-wrapped';
 
-/**
- * Check if a textarea is the main composer content field (Flarum uses .Composer body with textarea).
- */
 function isComposerTextarea(textarea) {
   if (!textarea || textarea.tagName !== 'TEXTAREA') return false;
   const composer = textarea.closest('.Composer, .ComposerBody, [class*="Composer"]');
@@ -20,10 +16,7 @@ function isComposerTextarea(textarea) {
 }
 
 /**
- * Wrap textarea in container and add preview layer. Apply transparent text + visible caret.
- * @param {HTMLTextAreaElement} textarea
- * @param {object} app - Flarum app (for settings)
- * @returns {function} destroy
+ * Build layout: textarea on top (3/4), preview panel on bottom (1/4). Tap panel header to expand/collapse.
  */
 export function wrapComposerTextarea(textarea, app) {
   if (textarea[ATTR_WRAPPED]) return () => {};
@@ -36,62 +29,68 @@ export function wrapComposerTextarea(textarea, app) {
   const wrap = document.createElement('div');
   wrap.className = WRAP_CLASS;
   wrap.setAttribute('role', 'group');
-  wrap.setAttribute('aria-label', 'Composer with live preview');
+  wrap.setAttribute('aria-label', 'Composer with preview');
 
-  const layer = document.createElement('div');
-  layer.className = LAYER_CLASS;
-  layer.setAttribute('aria-hidden', 'true');
-  layer.setAttribute('tabindex', '-1');
+  const textareaWrap = document.createElement('div');
+  textareaWrap.className = 'PreviewComposerTextareaWrap';
+
+  const panel = document.createElement('div');
+  panel.className = 'PreviewPanel';
+  panel.setAttribute('aria-label', 'Preview');
+
+  const panelHeader = document.createElement('button');
+  panelHeader.type = 'button';
+  panelHeader.className = 'PreviewPanel-header';
+  panelHeader.setAttribute('aria-expanded', 'false');
+  panelHeader.innerHTML = '<span class="PreviewPanel-title">Preview</span><span class="PreviewPanel-toggle" aria-hidden="true"></span>';
+
+  const panelBody = document.createElement('div');
+  panelBody.className = 'PreviewPanel-body';
 
   const parent = textarea.parentNode;
   const next = textarea.nextSibling;
   parent.insertBefore(wrap, next);
-  wrap.appendChild(textarea);
-  wrap.appendChild(layer);
+  wrap.appendChild(textareaWrap);
+  textareaWrap.appendChild(textarea);
+  wrap.appendChild(panel);
+  panel.appendChild(panelHeader);
+  panel.appendChild(panelBody);
 
   Object.assign(wrap.style, {
-    position: 'relative',
-    display: 'block',
+    display: 'flex',
+    flexDirection: 'column',
     flex: '1',
     minHeight: '0',
   });
-  Object.assign(layer.style, {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    right: 0,
-    bottom: 0,
-    overflow: 'auto',
-    pointerEvents: 'none',
-    padding: getComputedStyle(textarea).padding,
-    font: getComputedStyle(textarea).font,
-    lineHeight: getComputedStyle(textarea).lineHeight,
-    whiteSpace: 'pre-wrap',
-    wordWrap: 'break-word',
-    boxSizing: 'border-box',
+  Object.assign(textareaWrap.style, {
+    flex: '3',
+    minHeight: '0',
+    display: 'flex',
+    flexDirection: 'column',
   });
-  layer.style.cursor = 'text';
+  textarea.style.flex = '1';
+  textarea.style.minHeight = '0';
 
-  if (settings.hideRaw) {
-    textarea.style.color = 'transparent';
-    textarea.style.caretColor = 'currentColor';
-  } else {
-    textarea.style.color = 'rgba(0,0,0,0.35)';
-    textarea.style.caretColor = 'currentColor';
+  let expanded = false;
+  function setExpanded(value) {
+    expanded = !!value;
+    panel.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    panel.classList.toggle('PreviewPanel--expanded', expanded);
   }
-  textarea.setAttribute('aria-label', 'Post content (Markdown); live preview below');
+  panelHeader.addEventListener('click', () => setExpanded(!expanded));
+
   textarea[ATTR_WRAPPED] = '1';
 
-  const controller = createPreviewLayer(textarea, layer, {
+  const controller = createPreviewLayer(textarea, panelBody, {
     debounceMs: settings.debounceMs,
     instantTriggers: settings.instantTriggers,
+    scrollSync: false,
+    alwaysShow: true,
     onError: (err) => console.warn('[flarum-preview] Server preview failed', err),
   });
 
   return () => {
     controller.destroy();
-    textarea.style.color = '';
-    textarea.style.caretColor = '';
     textarea.removeAttribute(ATTR_WRAPPED);
     if (wrap.parentNode) {
       wrap.parentNode.insertBefore(textarea, wrap);
@@ -101,7 +100,8 @@ export function wrapComposerTextarea(textarea, app) {
 }
 
 /**
- * Preview-on-click mode: no live overlay; show an eye icon that toggles raw vs preview.
+ * Preview-on-click mode: eye is in composer footer (via TextEditor extend). No toolbar here.
+ * Toggle is driven by custom event 'flarum-preview-toggle' from the footer button.
  */
 function attachPreviewOnClickMode(textarea, app) {
   if (textarea[ATTR_WRAPPED]) return () => {};
@@ -113,16 +113,6 @@ function attachPreviewOnClickMode(textarea, app) {
   container.className = 'PreviewClickContainer';
   container.style.cssText = 'position:relative; display:flex; flex-direction:column; flex:1; min-height:0;';
 
-  const toolbar = document.createElement('div');
-  toolbar.className = 'PreviewClickToolbar';
-  toolbar.setAttribute('role', 'toolbar');
-  const eyeBtn = document.createElement('button');
-  eyeBtn.type = 'button';
-  eyeBtn.className = 'Button PreviewToggleBtn';
-  eyeBtn.setAttribute('aria-label', 'Toggle preview');
-  eyeBtn.innerHTML = '<i class="fas fa-eye"></i>';
-  eyeBtn.title = 'Preview';
-
   const previewBox = document.createElement('div');
   previewBox.className = 'PreviewClickBox';
   previewBox.style.cssText = 'display:none; flex:1; overflow:auto; padding:12px; border:1px solid var(--input-border-color, #ccc); border-radius:4px; background:var(--body-bg, #fff);';
@@ -132,13 +122,15 @@ function attachPreviewOnClickMode(textarea, app) {
   const next = textarea.nextSibling;
   parent.insertBefore(wrap, next);
   wrap.appendChild(container);
-  container.appendChild(toolbar);
-  toolbar.appendChild(eyeBtn);
   container.appendChild(previewBox);
   container.appendChild(textarea);
 
   let showingPreview = false;
   let lastHtml = '';
+
+  function getComposerEl() {
+    return textarea.closest && textarea.closest('.Composer');
+  }
 
   async function fetchAndShow() {
     try {
@@ -150,25 +142,33 @@ function attachPreviewOnClickMode(textarea, app) {
     }
   }
 
-  eyeBtn.addEventListener('click', () => {
+  function toggle() {
     showingPreview = !showingPreview;
     if (showingPreview) {
       fetchAndShow();
       previewBox.style.display = 'block';
       textarea.style.display = 'none';
-      eyeBtn.classList.add('active');
-      eyeBtn.setAttribute('aria-pressed', 'true');
     } else {
       previewBox.style.display = 'none';
       textarea.style.display = 'block';
-      eyeBtn.classList.remove('active');
-      eyeBtn.setAttribute('aria-pressed', 'false');
     }
-  });
+    const composer = getComposerEl();
+    if (composer) composer.setAttribute('data-preview-visible', showingPreview ? 'true' : 'false');
+    if (typeof m !== 'undefined' && m.redraw) m.redraw();
+  }
+
+  function onToggle(e) {
+    if (e.target && e.target.contains && e.target.contains(textarea)) toggle();
+  }
+
+  document.addEventListener('flarum-preview-toggle', onToggle);
 
   textarea[ATTR_WRAPPED] = '1';
   return () => {
+    document.removeEventListener('flarum-preview-toggle', onToggle);
     textarea.removeAttribute(ATTR_WRAPPED);
+    const composer = getComposerEl();
+    if (composer) composer.removeAttribute('data-preview-visible');
     if (wrap.parentNode) {
       wrap.parentNode.insertBefore(textarea, wrap);
       wrap.remove();
@@ -176,9 +176,6 @@ function attachPreviewOnClickMode(textarea, app) {
   };
 }
 
-/**
- * Find all composer textareas and wrap them. Call when DOM changes (e.g. new composer opened).
- */
 export function wrapAllComposerTextareas(app) {
   document.querySelectorAll('.Composer textarea, .ComposerBody textarea, [class*="Composer"] textarea').forEach((ta) => {
     if (isComposerTextarea(ta)) wrapComposerTextarea(ta, app);

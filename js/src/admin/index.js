@@ -22,12 +22,6 @@ app.initializers.add('zerosonesfun-preview-admin', () => {
       max: 2000,
     }, 90)
     .registerSetting({
-      setting: 'zerosonesfun_preview.hide_raw',
-      label: app.translator.trans('zerosonesfun-preview.admin.hide_raw_label'),
-      help: app.translator.trans('zerosonesfun-preview.admin.hide_raw_help'),
-      type: 'boolean',
-    }, 80)
-    .registerSetting({
       setting: 'zerosonesfun_preview.instant_triggers',
       label: app.translator.trans('zerosonesfun-preview.admin.instant_triggers_label'),
       help: app.translator.trans('zerosonesfun-preview.admin.instant_triggers_help'),

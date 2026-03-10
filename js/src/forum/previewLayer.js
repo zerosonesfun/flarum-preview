@@ -42,12 +42,14 @@ function escapeHtml(text) {
 /**
  * @param {HTMLTextAreaElement} textarea
  * @param {HTMLElement} layerEl - div that will hold the preview HTML
- * @param {object} options - { debounceMs, instantTriggers, onError }
+ * @param {object} options - { debounceMs, instantTriggers, scrollSync, alwaysShow, onError }
  */
 export function createPreviewLayer(textarea, layerEl, options = {}) {
   const {
     debounceMs = 300,
     instantTriggers = true,
+    scrollSync: enableScrollSync = true,
+    alwaysShow = false,
     credentials = 'same-origin',
     onError = () => {},
   } = options;
@@ -61,6 +63,12 @@ export function createPreviewLayer(textarea, layerEl, options = {}) {
   function reevaluateVisibility() {
     if (!lastHtml) {
       layerEl.style.visibility = "visible";
+      return;
+    }
+    if (alwaysShow) {
+      layerEl.style.visibility = "visible";
+      layerEl.innerHTML = lastHtml;
+      annotatePreviewDom(layerEl, textarea.value);
       return;
     }
     const content = textarea.value;
@@ -125,7 +133,9 @@ export function createPreviewLayer(textarea, layerEl, options = {}) {
     }
   });
 
-  textarea.addEventListener('scroll', scrollSync);
+  if (enableScrollSync) {
+    textarea.addEventListener('scroll', scrollSync);
+  }
   textarea.addEventListener('input', schedulePreview);
   textarea.addEventListener('keyup', reevaluateVisibility);
   textarea.addEventListener('click', reevaluateVisibility);
@@ -135,7 +145,9 @@ export function createPreviewLayer(textarea, layerEl, options = {}) {
       requestPreview();
     },
     destroy() {
-      textarea.removeEventListener('scroll', scrollSync);
+      if (enableScrollSync) {
+        textarea.removeEventListener('scroll', scrollSync);
+      }
       textarea.removeEventListener('input', schedulePreview);
       textarea.removeEventListener('keyup', reevaluateVisibility);
       textarea.removeEventListener('click', reevaluateVisibility);
