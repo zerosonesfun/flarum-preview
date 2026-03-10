@@ -1,0 +1,42 @@
+{
+    "name": "zerosonesfun/flarum-preview",
+    "description": "Live visual preview overlay for the Flarum composer (mirror-overlay). Single source of truth: textarea (raw Markdown/BBCode).",
+    "keywords": [
+        "flarum",
+        "extension",
+        "preview",
+        "composer",
+        "markdown"
+    ],
+    "type": "flarum-extension",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "zerosonesfun",
+            "homepage": "https://github.com/zerosonesfun"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/zerosonesfun/flarum-preview/issues",
+        "source": "https://github.com/zerosonesfun/flarum-preview"
+    },
+    "require": {
+        "flarum/core": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "ZerosOnesFun\\FlarumPreview\\": "src/"
+        }
+    },
+    "extra": {
+        "flarum-extension": {
+            "title": "Preview",
+            "category": "feature",
+            "icon": {
+                "name": "fas fa-eye",
+                "backgroundColor": "#4d698e",
+                "color": "#fff"
+            }
+        }
+    }
+}

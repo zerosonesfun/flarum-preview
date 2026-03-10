@@ -1,0 +1,129 @@
+# Preview (zerosonesfun/flarum-preview)
+
+Live visual preview overlay for the Flarum composer. The **textarea remains the single source of truth** (raw Markdown/BBCode); the preview is a mirror overlay that shows rendered content while you type.
+
+## How it works
+
+- **Mirror-overlay**: The composer textarea is wrapped in a container. A preview layer (a `div`) is positioned behind/beneath the textarea. The textarea text can be dimmed or made transparent; the caret stays visible. You type in the real textarea; the preview layer shows the server-rendered HTML.
+- **Server preview**: Content is sent to `POST /api/preview` (same pipeline as Flarum’s TextFormatter: Markdown + BBCode + extensions). The extension registers this route and uses Flarum’s `Formatter` to parse and render.
+- **Client tokenizer**: A small client-side tokenizer recognizes common Markdown (headings, bold, italic, code, lists, links, images, blockquotes). It is used only to:
+  - Map rendered DOM back to source ranges so **click-to-edit** works (e.g. click a link in the preview to focus the textarea and select the raw `[text](url)`).
+  - Detect **default toolbar templates** (e.g. `[link](https://)`, `**bold**`) and avoid rendering them until the user edits the placeholder.
+- **BBCode / unknown tags**: Not parsed on the client. Full content is sent to the server; the server returns HTML. The client does not assume any BBCode extension; it relies on the server preview for unknown tags.
+
+## Install
+
+1. Copy the extension into your Flarum `extensions` folder (or install via Composer when published):
+   ```bash
+   cd /path/to/flarum
+   composer require zerosonesfun/flarum-preview
+   ```
+   Or clone/copy into `extensions/zerosonesfun-preview`.
+2. Clear cache and enable in Admin:
+   ```bash
+   php flarum cache:clear
+   ```
+   Then **Administration → Extensions → Preview → Enable**.
+3. Rebuild frontend assets if your setup requires it (e.g. `php flarum build` if you use Flarum’s build pipeline).
+
+## Build JS (for development)
+
+From the extension directory:
+
+```bash
+npm install
+npm run build
+```
+
+This produces `js/dist/forum.js` and `js/dist/admin.js`. Use `npm run dev` for watch mode.
+
+## Admin settings
+
+- **Preview on click (eye icon)**  
+  When ON: live preview is off; users use an eye icon to toggle between raw composer and preview.
+- **Preview debounce (ms)**  
+  Delay before sending content to the server (default 300).
+- **Hide raw markdown in composer**  
+  When ON: typed text is transparent so only the preview is visible (caret remains visible).
+- **Instant preview triggers**  
+  When ON: preview is requested immediately on certain keystrokes (e.g. closing `**` or ` ``` `) instead of only after debounce.
+
+## Design decisions
+
+- **Why client tokenizer + server preview?**  
+  The server is the only place that knows the full TextFormatter pipeline (Markdown, BBCode, extensions). The client tokenizer is minimal and used only for mapping and template detection, not for rendering. All rendered HTML comes from the server.
+- **Why not render toolbar templates until edited?**  
+  Placeholders like `[link](https://)` are treated as templates; they are not shown as rendered links until the user changes the label or URL. This avoids flashing a “link” link and keeps the UX clear.
+- **Click-to-edit:**  
+  Rendered links (and optionally other mapped elements) are annotated with `data-md-start` and `data-md-end`. Clicking them focuses the textarea and selects the corresponding raw range so the user can edit the source.
+
+## Known edge cases
+
+- **Duplicate link text:**  
+  Mapping uses token order (first link token → first `<a>` in the preview). If you have multiple identical links, the first match is used; in ambiguous cases we do not map (click focuses textarea at an approximate position).
+- **Very long content:**  
+  Debouncing and optional instant triggers limit server calls; for very large posts, consider increasing debounce or disabling instant triggers.
+- **BBCode-only content:**  
+  Preview is correct (server handles it). Click-to-edit may not map BBCode tags that the client tokenizer does not understand; the textarea is still the source of truth and can be edited normally.
+
+## Troubleshooting
+
+- **Preview stays empty or shows “Preview failed”**  
+  - Ensure the extension is enabled and `php flarum cache:clear` was run.  
+  - Check that `POST /api/preview` is reachable and returns JSON with HTML (e.g. `data.data.attributes.html` or `data.html`).  
+  - Check browser console and network tab for 4xx/5xx or CORS/CSRF issues. Requests use `credentials: 'same-origin'`.
+- **Composer not wrapped / no overlay**  
+  - Ensure `js/dist/forum.js` is built and loaded.  
+  - Composer is detected by wrapping textareas inside `.Composer` (or similar). If your theme changes that class, the wrapper might not attach; you may need to extend the selector in the extension.
+- **Toolbar template still renders as link**  
+  - Default templates are detected by exact label/URL (e.g. `link` + `https://`). If your toolbar inserts different placeholders, they may render; you can extend the template list in the tokenizer.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
+
+## Runbook (tests and build)
+
+### Build JS
+
+```bash
+cd /path/to/flarum-preview
+npm install
+npm run build
+```
+
+Produces `js/dist/forum.js` and `js/dist/admin.js`.
+
+### Unit tests (tokenizer + serverPreview)
+
+```bash
+npm test
+```
+
+Uses Jest with Node ESM. No Flarum instance required.
+
+### E2E tests (Playwright)
+
+E2E tests are **skipped by default** because they need a running Flarum forum with the extension enabled. To run them:
+
+1. Start Flarum (e.g. `php flarum serve` or your dev URL).
+2. Enable the Preview extension in Admin.
+3. Set the base URL and run:
+
+```bash
+FLARUM_BASE_URL=http://localhost:8080 npm run test:e2e
+```
+
+To enable the tests (remove `test.skip`), edit `tests/e2e/preview.spec.js` and delete the `.skip` from each `test.skip(...)` so they run against your instance.
+
+### Local install (manual test)
+
+1. Copy the extension into your Flarum `extensions` folder:  
+   `cp -r /path/to/flarum-preview /path/to/flarum/extensions/zerosonesfun-preview`
+2. Clear cache: `php flarum cache:clear`
+3. In Admin → Extensions, enable **Preview**.
+4. Open a discussion and use Reply; the composer should show the live preview overlay.
+
+## Repository
+
+`zerosonesfun/flarum-preview` — [GitHub](https://github.com/zerosonesfun/flarum-preview)

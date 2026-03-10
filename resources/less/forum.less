@@ -1,0 +1,52 @@
+/* Preview extension: mirror-overlay composer styles */
+
+.PreviewComposerWrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+
+  textarea {
+    position: relative;
+    z-index: 1;
+    background: transparent !important;
+  }
+}
+
+.PreviewLayer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  overflow: auto;
+  padding: inherit;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  pointer-events: none;
+  cursor: text;
+
+  /* Only mapped links/images receive clicks (click-to-edit); rest passes through to textarea */
+  a[data-preview-mapped],
+  img[data-preview-mapped] {
+    pointer-events: auto;
+    cursor: pointer;
+  }
+}
+
+.PreviewLayer-error {
+  color: var(--muted-color, #999);
+  padding: 0.5em 0;
+}
+
+/* Preview-on-click mode: toolbar with eye icon */
+.PreviewComposerWrap--clickMode {
+  .PreviewClickToolbar {
+    margin-bottom: 8px;
+  }
+
+  .PreviewToggleBtn.active {
+    opacity: 1;
+  }
+}
