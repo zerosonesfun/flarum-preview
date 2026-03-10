@@ -228,12 +228,18 @@ function attachPreviewOnClickMode(textarea, app) {
     return Math.max(0, editorRow.offsetHeight - footerH);
   }
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+  function getTextareaHeightMobileOnly() {
+    const inline = textarea.style.height;
+    if (inline && inline.endsWith('px')) return parseInt(inline, 10);
+    return 0;
+  }
   function syncWrapHeight() {
     if (!wrap.parentNode) return;
     if (isMobile && showingPreview) return;
     let h = 0;
     if (isMobile) {
-      h = getTextareaHeightPx();
+      h = getTextareaHeightMobileOnly();
+      if (h <= 0) return;
     } else if (showingPreview) {
       h = getAvailableHeightForPreview();
     } else {
