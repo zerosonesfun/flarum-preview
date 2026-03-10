@@ -230,6 +230,7 @@ function attachPreviewOnClickMode(textarea, app) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
   function syncWrapHeight() {
     if (!wrap.parentNode) return;
+    if (isMobile && showingPreview) return;
     let h = 0;
     if (isMobile) {
       h = getTextareaHeightPx();
