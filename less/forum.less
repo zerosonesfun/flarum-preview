@@ -1,14 +1,20 @@
 /* Preview extension: composer top = textarea, bottom = preview panel. Collapsed by default; tap header to expand/collapse. */
 
 /*
- * When preview is active: constrain height so Composer-footer stays at bottom and panel drag works.
- * Structure: .Composer > .Composer-content > .ComposerBody > .ComposerBody-content > .ComposerBody-editor
- *   > [.TextEditor | ul.Composer-footer]. Only the editor chain gets flex:1; footer stays put.
+ * When preview is active: constrain height so toolbar (ul.Composer-footer) stays at bottom and panel drag works.
+ * Default Flarum: .Composer has inline height; .ComposerBody-editor contains .TextEditor and ul.Composer-footer as siblings.
+ * We turn the chain into a flex column so only the editor area grows; footer is pinned with flex: 0 0 auto.
  */
 .Composer--hasPreview {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow: hidden;
+}
+
+.Composer--hasPreview .Composer-handle,
+.Composer--hasPreview .Composer-controls {
+  flex: 0 0 auto;
 }
 
 .Composer--hasPreview .Composer-content {
@@ -19,7 +25,18 @@
   flex-direction: column;
 }
 
-.Composer--hasPreview .ComposerBody,
+.Composer--hasPreview .ComposerBody {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.Composer--hasPreview .ComposerBody-avatar {
+  flex: 0 0 auto;
+}
+
 .Composer--hasPreview .ComposerBody-content {
   flex: 1 1 0;
   min-height: 0;
@@ -28,7 +45,7 @@
   flex-direction: column;
 }
 
-/* Editor area: flex column so .TextEditor grows and ul.Composer-footer stays at bottom */
+/* Editor column: .TextEditor takes remaining space, ul.Composer-footer pinned at bottom */
 .Composer--hasPreview .ComposerBody-editor {
   flex: 1 1 0;
   min-height: 0;
@@ -43,6 +60,12 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+/* Toolbar must not grow or shrink – stays at bottom of .ComposerBody-editor */
+.Composer--hasPreview .Composer-footer,
+.Composer--hasPreview ul.TextEditor-controls.Composer-footer {
+  flex: 0 0 auto;
 }
 
 .Composer--hasPreview .TextEditor-editorContainer,
