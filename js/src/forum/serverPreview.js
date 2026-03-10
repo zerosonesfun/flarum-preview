@@ -1,3 +1,5 @@
+import app from 'flarum/forum/app';
+
 /**
  * Server preview client: POST /api/preview with content, return rendered HTML.
  * Handles multiple response shapes (data.html, data.data.attributes.html).
@@ -35,6 +37,7 @@ export async function fetchPreview(content, options = {}) {
       'Content-Type': 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
       Accept: 'application/json',
+      ...(app.session && app.session.csrfToken ? { 'X-CSRF-Token': app.session.csrfToken() } : {}),
     },
     body: JSON.stringify({ content: content || '' }),
     credentials,
