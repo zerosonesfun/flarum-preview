@@ -245,14 +245,17 @@ function attachPreviewOnClickMode(textarea, app) {
     }
   }
   syncWrapHeight();
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
   const ro =
     typeof ResizeObserver !== 'undefined'
       ? new ResizeObserver(() => syncWrapHeight())
       : null;
   if (ro) {
     ro.observe(textarea);
-    if (editorContainer) ro.observe(editorContainer);
-    if (editorRow) ro.observe(editorRow);
+    if (!isMobile) {
+      if (editorContainer) ro.observe(editorContainer);
+      if (editorRow) ro.observe(editorRow);
+    }
   }
   const styleObs = new MutationObserver(() => syncWrapHeight());
   styleObs.observe(textarea, { attributes: true, attributeFilter: ['style'] });
