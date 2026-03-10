@@ -227,10 +227,13 @@ function attachPreviewOnClickMode(textarea, app) {
     const footerH = footerEl ? footerEl.offsetHeight : 0;
     return Math.max(0, editorRow.offsetHeight - footerH);
   }
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
   function syncWrapHeight() {
     if (!wrap.parentNode) return;
     let h = 0;
-    if (showingPreview) {
+    if (isMobile) {
+      h = getTextareaHeightPx();
+    } else if (showingPreview) {
       h = getAvailableHeightForPreview();
     } else {
       h = getTextareaHeightPx();
@@ -245,7 +248,6 @@ function attachPreviewOnClickMode(textarea, app) {
     }
   }
   syncWrapHeight();
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
   const ro =
     typeof ResizeObserver !== 'undefined'
       ? new ResizeObserver(() => syncWrapHeight())
