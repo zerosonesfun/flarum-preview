@@ -78,8 +78,13 @@ export function wrapComposerTextarea(textarea, app) {
   let didDrag = false;
 
   function getMaxPanelHeight() {
-    const h = wrap.offsetHeight;
-    return Math.max(EXPANDED_DEFAULT_HEIGHT, (h || 0) - MIN_TEXTAREA_HEIGHT);
+    let h = wrap.offsetHeight;
+    if (!h) {
+      const editor = wrap.closest('.ComposerBody-editor, .Composer-body');
+      h = editor ? editor.offsetHeight : 0;
+    }
+    const max = Math.max(EXPANDED_DEFAULT_HEIGHT, (h || 0) - MIN_TEXTAREA_HEIGHT);
+    return max < EXPANDED_DEFAULT_HEIGHT ? 400 : max;
   }
 
   function setExpanded(value) {
@@ -98,14 +103,18 @@ export function wrapComposerTextarea(textarea, app) {
 
   function onHeaderPointerDown(e) {
     didDrag = false;
+    if (e.type === 'mousedown') {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (!expanded) return;
-    const startY = e.clientY !== undefined ? e.clientY : e.touches[0].clientY;
+    const startY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
     const startHeight = panel.offsetHeight;
     const maxH = getMaxPanelHeight();
 
-    function move(e) {
+    function move(ev) {
+      const currentY = ev.clientY !== undefined ? ev.clientY : (ev.touches && ev.touches[0] ? ev.touches[0].clientY : startY);
       didDrag = true;
-      const currentY = e.clientY !== undefined ? e.clientY : e.touches[0].clientY;
       const deltaY = startY - currentY;
       const newHeight = Math.max(EXPANDED_DEFAULT_HEIGHT, Math.min(maxH, startHeight + deltaY));
       panel.classList.add('PreviewPanel--dragging');
@@ -166,14 +175,25 @@ function attachPreviewOnClickMode(textarea, app) {
   wrap.className = WRAP_CLASS + ' PreviewComposerWrap--clickMode';
   wrap.setAttribute('data-preview-click-mode', '1');
 
+  const editorContainer = textarea.closest('.TextEditor-editorContainer');
   const container = document.createElement('div');
   container.className = 'PreviewClickContainer';
   container.style.cssText = 'position:relative; display:flex; flex-direction:column; flex:1; min-height:0;';
 
   const previewBox = document.createElement('div');
   previewBox.className = 'PreviewClickBox';
-  previewBox.style.cssText = 'display:none; flex:1; overflow:auto; padding:12px; background:var(--body-bg, #fff);';
+  previewBox.style.cssText = 'display:none; flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; padding:12px; background:var(--body-bg, #fff);';
   previewBox.setAttribute('aria-hidden', 'true');
+
+  function applyEditorHeight() {
+    if (editorContainer && wrap.parentNode) {
+      const h = editorContainer.offsetHeight;
+      if (h > 0) wrap.style.maxHeight = h + 'px';
+    }
+  }
+  applyEditorHeight();
+  const ro = editorContainer && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(applyEditorHeight) : null;
+  if (ro && editorContainer) ro.observe(editorContainer);
 
   const eyeWrap = document.createElement('div');
   eyeWrap.className = 'PreviewEyeFloating';
@@ -219,11 +239,9 @@ function attachPreviewOnClickMode(textarea, app) {
       fetchAndShow();
       previewBox.style.display = 'block';
       textarea.style.display = 'none';
-      eyeWrap.style.display = 'none';
     } else {
       previewBox.style.display = 'none';
       textarea.style.display = 'block';
-      eyeWrap.style.display = '';
     }
     const composer = getComposerEl();
     if (composer) composer.setAttribute('data-preview-visible', showingPreview ? 'true' : 'false');
@@ -239,6 +257,7 @@ function attachPreviewOnClickMode(textarea, app) {
 
   textarea[ATTR_WRAPPED] = '1';
   return () => {
+    if (ro && editorContainer) ro.disconnect();
     const composerEl = getComposerEl();
     if (composerEl) {
       composerEl.classList.remove('Composer--previewClickMode');

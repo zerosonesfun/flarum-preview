@@ -88,18 +88,23 @@ export function createPreviewLayer(textarea, layerEl, options = {}) {
   function getCursorLineIndex() {
     const text = textarea.value || '';
     const pos = Math.min(textarea.selectionStart || 0, text.length);
-    return text.slice(0, pos).split(/\r?\n/).length - 1;
+    return Math.max(0, text.slice(0, pos).split(/\r?\n/).length - 1);
   }
 
+  /**
+   * Scroll the preview panel so the line at the cursor is in view.
+   * Uses line-ratio so it works even when the rendered HTML has fewer blocks than lines.
+   */
   function scrollCursorIntoView() {
-    if (!layerEl || !layerEl.firstChild) return;
+    if (!layerEl || layerEl.scrollHeight <= layerEl.clientHeight) return;
+    const text = textarea.value || '';
+    const lines = text.split(/\r?\n/);
+    const totalLines = lines.length;
     const lineIndex = getCursorLineIndex();
-    const blocks = layerEl.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, blockquote, pre');
-    const idx = Math.min(lineIndex, Math.max(0, blocks.length - 1));
-    const el = blocks[idx];
-    if (el && el.scrollIntoView) {
-      el.scrollIntoView({ block: 'nearest', behavior: 'auto' });
-    }
+    const scrollRange = layerEl.scrollHeight - layerEl.clientHeight;
+    if (scrollRange <= 0) return;
+    const ratio = totalLines <= 1 ? 0 : lineIndex / Math.max(1, totalLines - 1);
+    layerEl.scrollTop = Math.round(ratio * scrollRange);
   }
 
   const debouncedScrollIntoView = debounce(scrollCursorIntoView, 50);
@@ -127,6 +132,7 @@ export function createPreviewLayer(textarea, layerEl, options = {}) {
 
   const debouncedRequest = debounce(requestPreview, debounceMs);
 
+  /** When instantTriggers (admin setting) is on, fire preview immediately on e.g. typing ** or ``` */
   function schedulePreview() {
     const content = textarea.value;
     if (instantTriggers && shouldTriggerInstant(content, lastContent)) {
@@ -142,21 +148,25 @@ export function createPreviewLayer(textarea, layerEl, options = {}) {
     layerEl.scrollLeft = textarea.scrollLeft;
   }
 
+  const onInput = () => {
+    schedulePreview();
+    debouncedScrollIntoView();
+  };
+  const onKeyup = () => {
+    reevaluateVisibility();
+    debouncedScrollIntoView();
+  };
+  const onClick = () => {
+    reevaluateVisibility();
+    scrollCursorIntoView();
+  };
+
   if (enableScrollSync) {
     textarea.addEventListener('scroll', scrollSync);
   }
-  textarea.addEventListener('input', () => {
-    schedulePreview();
-    debouncedScrollIntoView();
-  });
-  textarea.addEventListener('keyup', () => {
-    reevaluateVisibility();
-    debouncedScrollIntoView();
-  });
-  textarea.addEventListener('click', () => {
-    reevaluateVisibility();
-    scrollCursorIntoView();
-  });
+  textarea.addEventListener('input', onInput);
+  textarea.addEventListener('keyup', onKeyup);
+  textarea.addEventListener('click', onClick);
 
   requestPreview();
 
@@ -168,9 +178,9 @@ export function createPreviewLayer(textarea, layerEl, options = {}) {
       if (enableScrollSync) {
         textarea.removeEventListener('scroll', scrollSync);
       }
-      textarea.removeEventListener('input', schedulePreview);
-      textarea.removeEventListener('keyup', reevaluateVisibility);
-      textarea.removeEventListener('click', reevaluateVisibility);
+      textarea.removeEventListener('input', onInput);
+      textarea.removeEventListener('keyup', onKeyup);
+      textarea.removeEventListener('click', onClick);
       if (aborter) aborter.abort();
     },
   };

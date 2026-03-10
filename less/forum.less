@@ -67,6 +67,7 @@
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
+  touch-action: none; /* allow drag resize without browser scroll */
 
   &:hover {
     background: var(--control-bg-hover, #eee);
@@ -135,7 +136,23 @@
   }
 }
 
-/* Preview-on-click: no border around the preview box */
+/* Preview-on-click: constrain to editor height, preview scrolls inside */
+.TextEditor-editorContainer .PreviewComposerWrap--clickMode {
+  max-height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.PreviewComposerWrap--clickMode .PreviewClickContainer {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .PreviewComposerWrap--clickMode .PreviewClickBox {
   border: none;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
