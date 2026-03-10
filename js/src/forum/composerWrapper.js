@@ -168,6 +168,12 @@ export function wrapComposerTextarea(textarea, app) {
     setExpanded(!expanded);
   });
 
+  const composerHandle = composerEl ? composerEl.querySelector('.Composer-handle') : null;
+  function onComposerHandleClick() {
+    if (expanded) setExpanded(false);
+  }
+  if (composerHandle) composerHandle.addEventListener('click', onComposerHandleClick);
+
   setExpanded(true);
 
   textarea[ATTR_WRAPPED] = '1';
@@ -181,6 +187,7 @@ export function wrapComposerTextarea(textarea, app) {
   });
 
   return () => {
+    if (composerHandle) composerHandle.removeEventListener('click', onComposerHandleClick);
     if (resizeObserver) resizeObserver.disconnect();
     styleObserver.disconnect();
     controller.destroy();
