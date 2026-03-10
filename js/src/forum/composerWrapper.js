@@ -214,17 +214,24 @@ function attachPreviewOnClickMode(textarea, app) {
   previewBox.setAttribute('aria-hidden', 'true');
 
   const editorContainer = textarea.closest('.TextEditor-editorContainer');
+  const editorRow = textarea.closest('.ComposerBody-editor');
+  const footerEl = editorRow ? editorRow.querySelector('.Composer-footer') : null;
 
   function getTextareaHeightPx() {
     const inline = textarea.style.height;
     if (inline && inline.endsWith('px')) return parseInt(inline, 10);
     return textarea.offsetHeight;
   }
+  function getAvailableHeightForPreview() {
+    if (!editorRow) return 0;
+    const footerH = footerEl ? footerEl.offsetHeight : 0;
+    return Math.max(0, editorRow.offsetHeight - footerH);
+  }
   function syncWrapHeight() {
     if (!wrap.parentNode) return;
     let h = 0;
-    if (showingPreview && editorContainer) {
-      h = editorContainer.offsetHeight;
+    if (showingPreview) {
+      h = getAvailableHeightForPreview();
     } else {
       h = getTextareaHeightPx();
     }
@@ -245,6 +252,7 @@ function attachPreviewOnClickMode(textarea, app) {
   if (ro) {
     ro.observe(textarea);
     if (editorContainer) ro.observe(editorContainer);
+    if (editorRow) ro.observe(editorRow);
   }
   const styleObs = new MutationObserver(() => syncWrapHeight());
   styleObs.observe(textarea, { attributes: true, attributeFilter: ['style'] });
