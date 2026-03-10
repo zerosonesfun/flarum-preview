@@ -213,23 +213,40 @@ function attachPreviewOnClickMode(textarea, app) {
   previewBox.style.cssText = 'display:none; flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; padding:12px; background:var(--body-bg, #fff);';
   previewBox.setAttribute('aria-hidden', 'true');
 
+  const editorContainer = textarea.closest('.TextEditor-editorContainer');
+
   function getTextareaHeightPx() {
     const inline = textarea.style.height;
     if (inline && inline.endsWith('px')) return parseInt(inline, 10);
     return textarea.offsetHeight;
   }
-  function syncWrapHeightToTextarea() {
+  function syncWrapHeight() {
     if (!wrap.parentNode) return;
-    const h = getTextareaHeightPx();
-    if (h > 0) wrap.style.height = h + 'px';
+    let h = 0;
+    if (showingPreview && editorContainer) {
+      h = editorContainer.offsetHeight;
+    } else {
+      h = getTextareaHeightPx();
+    }
+    if (h > 0) {
+      wrap.style.height = h + 'px';
+      if (showingPreview) {
+        previewBox.style.height = h + 'px';
+        previewBox.style.minHeight = h + 'px';
+        previewBox.style.maxHeight = h + 'px';
+      }
+    }
   }
-  syncWrapHeightToTextarea();
+  syncWrapHeight();
   const ro =
     typeof ResizeObserver !== 'undefined'
-      ? new ResizeObserver(() => syncWrapHeightToTextarea())
+      ? new ResizeObserver(() => syncWrapHeight())
       : null;
-  if (ro) ro.observe(textarea);
-  const styleObs = new MutationObserver(() => syncWrapHeightToTextarea());
+  if (ro) {
+    ro.observe(textarea);
+    if (editorContainer) ro.observe(editorContainer);
+  }
+  const styleObs = new MutationObserver(() => syncWrapHeight());
   styleObs.observe(textarea, { attributes: true, attributeFilter: ['style'] });
 
   const eyeWrap = document.createElement('div');
@@ -273,7 +290,7 @@ function attachPreviewOnClickMode(textarea, app) {
   function toggle() {
     showingPreview = !showingPreview;
     if (showingPreview) {
-      const h = textarea.offsetHeight;
+      const h = getTextareaHeightPx() || (editorContainer ? editorContainer.offsetHeight : 0);
       if (h > 0) {
         previewBox.style.height = h + 'px';
         previewBox.style.minHeight = h + 'px';
@@ -289,6 +306,7 @@ function attachPreviewOnClickMode(textarea, app) {
       previewBox.style.display = 'none';
       textarea.style.display = 'block';
     }
+    syncWrapHeight();
     const composer = getComposerEl();
     if (composer) composer.setAttribute('data-preview-visible', showingPreview ? 'true' : 'false');
     if (showingPreview) eyeBtn.classList.add('active');
