@@ -79,6 +79,36 @@ export function wrapComposerTextarea(textarea, app) {
   let expanded = false;
   let didDrag = false;
 
+  const editorRow = wrap.closest('.ComposerBody-editor');
+  const footerEl = editorRow ? editorRow.querySelector('.Composer-footer') : null;
+  const MIN_PANEL_HEIGHT = 44;
+
+  function updateWrapHeight() {
+    if (!editorRow || !wrap.parentNode) return;
+    const editorH = editorRow.offsetHeight;
+    const footerH = footerEl ? footerEl.offsetHeight : 0;
+    const available = Math.max(0, editorH - footerH);
+    const textareaH = textarea.offsetHeight;
+    const panelH = Math.max(MIN_PANEL_HEIGHT, available - textareaH);
+    if (available > 0) {
+      wrap.style.height = available + 'px';
+      if (expanded) {
+        panel.style.setProperty('height', panelH + 'px', 'important');
+        panel.style.setProperty('max-height', panelH + 'px', 'important');
+      }
+    }
+  }
+
+  updateWrapHeight();
+  const resizeObserver =
+    typeof ResizeObserver !== 'undefined' && editorRow
+      ? new ResizeObserver(() => updateWrapHeight())
+      : null;
+  if (resizeObserver && editorRow) {
+    resizeObserver.observe(editorRow);
+    resizeObserver.observe(textarea);
+  }
+
   function getMaxPanelHeight() {
     let h = wrap.offsetHeight;
     if (!h) {
@@ -158,6 +188,7 @@ export function wrapComposerTextarea(textarea, app) {
   });
 
   return () => {
+    if (resizeObserver && editorRow) resizeObserver.disconnect();
     controller.destroy();
     const composer = textarea.closest('.Composer');
     if (composer) composer.classList.remove('Composer--hasPreview');
