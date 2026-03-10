@@ -6,7 +6,7 @@ import app from 'flarum/admin/app';
 
 app.initializers.add('zerosonesfun-preview-admin', () => {
   app.extensionData
-    .for('zerosonesfun-flarum-preview')
+    .for('zerosonesfun-preview')
     .registerSetting({
       setting: 'zerosonesfun_preview.preview_on_click_mode',
       label: app.translator.trans('zerosonesfun-preview.admin.preview_on_click_mode_label'),
