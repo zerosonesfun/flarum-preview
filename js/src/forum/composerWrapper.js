@@ -92,11 +92,15 @@ export function wrapComposerTextarea(textarea, app) {
   }
 
   syncWrapHeightToTextarea();
+
   const resizeObserver =
     typeof ResizeObserver !== 'undefined'
       ? new ResizeObserver(() => syncWrapHeightToTextarea())
       : null;
   if (resizeObserver) resizeObserver.observe(textarea);
+
+  const styleObserver = new MutationObserver(() => syncWrapHeightToTextarea());
+  styleObserver.observe(textarea, { attributes: true, attributeFilter: ['style'] });
 
   function getMaxPanelHeight() {
     let h = wrap.offsetHeight;
@@ -178,6 +182,7 @@ export function wrapComposerTextarea(textarea, app) {
 
   return () => {
     if (resizeObserver) resizeObserver.disconnect();
+    styleObserver.disconnect();
     controller.destroy();
     const composer = textarea.closest('.Composer');
     if (composer) composer.classList.remove('Composer--hasPreview');
