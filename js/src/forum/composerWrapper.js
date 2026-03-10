@@ -47,6 +47,7 @@ export function wrapComposerTextarea(textarea, app) {
   const panelBody = document.createElement('div');
   panelBody.className = 'PreviewPanel-body';
 
+  const composerEl = textarea.closest('.Composer');
   const parent = textarea.parentNode;
   const next = textarea.nextSibling;
   parent.insertBefore(wrap, next);
@@ -55,6 +56,7 @@ export function wrapComposerTextarea(textarea, app) {
   wrap.appendChild(panel);
   panel.appendChild(panelHeader);
   panel.appendChild(panelBody);
+  if (composerEl) composerEl.classList.add('Composer--hasPreview');
 
   Object.assign(wrap.style, {
     display: 'flex',
@@ -80,7 +82,7 @@ export function wrapComposerTextarea(textarea, app) {
   function getMaxPanelHeight() {
     let h = wrap.offsetHeight;
     if (!h) {
-      const editor = wrap.closest('.ComposerBody-editor, .Composer-body');
+      const editor = wrap.closest('.ComposerBody-editor');
       h = editor ? editor.offsetHeight : 0;
     }
     const max = Math.max(EXPANDED_DEFAULT_HEIGHT, (h || 0) - MIN_TEXTAREA_HEIGHT);
@@ -93,11 +95,11 @@ export function wrapComposerTextarea(textarea, app) {
     panel.classList.toggle('PreviewPanel--expanded', expanded);
     panel.classList.toggle('PreviewPanel--collapsed', !expanded);
     if (expanded) {
-      panel.style.height = EXPANDED_DEFAULT_HEIGHT + 'px';
-      panel.style.maxHeight = getMaxPanelHeight() + 'px';
+      panel.style.setProperty('height', EXPANDED_DEFAULT_HEIGHT + 'px', 'important');
+      panel.style.setProperty('max-height', getMaxPanelHeight() + 'px', 'important');
     } else {
-      panel.style.height = '';
-      panel.style.maxHeight = '';
+      panel.style.removeProperty('height');
+      panel.style.removeProperty('max-height');
     }
   }
 
@@ -118,7 +120,7 @@ export function wrapComposerTextarea(textarea, app) {
       const deltaY = startY - currentY;
       const newHeight = Math.max(EXPANDED_DEFAULT_HEIGHT, Math.min(maxH, startHeight + deltaY));
       panel.classList.add('PreviewPanel--dragging');
-      panel.style.height = newHeight + 'px';
+      panel.style.setProperty('height', newHeight + 'px', 'important');
     }
 
     function stop() {
@@ -157,6 +159,8 @@ export function wrapComposerTextarea(textarea, app) {
 
   return () => {
     controller.destroy();
+    const composer = textarea.closest('.Composer');
+    if (composer) composer.classList.remove('Composer--hasPreview');
     textarea.removeAttribute(ATTR_WRAPPED);
     if (wrap.parentNode) {
       wrap.parentNode.insertBefore(textarea, wrap);
@@ -236,10 +240,19 @@ function attachPreviewOnClickMode(textarea, app) {
   function toggle() {
     showingPreview = !showingPreview;
     if (showingPreview) {
+      const h = textarea.offsetHeight;
+      if (h > 0) {
+        previewBox.style.height = h + 'px';
+        previewBox.style.minHeight = h + 'px';
+        previewBox.style.maxHeight = h + 'px';
+      }
       fetchAndShow();
       previewBox.style.display = 'block';
       textarea.style.display = 'none';
     } else {
+      previewBox.style.height = '';
+      previewBox.style.minHeight = '';
+      previewBox.style.maxHeight = '';
       previewBox.style.display = 'none';
       textarea.style.display = 'block';
     }

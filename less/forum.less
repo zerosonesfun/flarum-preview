@@ -1,5 +1,60 @@
 /* Preview extension: composer top = textarea, bottom = preview panel. Collapsed by default; tap header to expand/collapse. */
 
+/*
+ * When preview is active: constrain height so Composer-footer stays at bottom and panel drag works.
+ * Structure: .Composer > .Composer-content > .ComposerBody > .ComposerBody-content > .ComposerBody-editor
+ *   > [.TextEditor | ul.Composer-footer]. Only the editor chain gets flex:1; footer stays put.
+ */
+.Composer--hasPreview {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.Composer--hasPreview .Composer-content {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.Composer--hasPreview .ComposerBody,
+.Composer--hasPreview .ComposerBody-content {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Editor area: flex column so .TextEditor grows and ul.Composer-footer stays at bottom */
+.Composer--hasPreview .ComposerBody-editor {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.Composer--hasPreview .ComposerBody-editor > .TextEditor {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.Composer--hasPreview .TextEditor-editorContainer,
+.Composer--hasPreview .ComposerBody-mentionsWrapper,
+.Composer--hasPreview .ComposerBody-emojiWrapper {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 .PreviewComposerWrap {
   display: flex;
   flex-direction: column;
@@ -47,6 +102,7 @@
     }
   }
 
+  /* During drag, JS sets height with !important; no transition */
   &.PreviewPanel--dragging {
     transition: none;
   }
