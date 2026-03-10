@@ -6,7 +6,9 @@ import app from 'flarum/forum/app';
  * Debouncing is applied by the caller (previewLayer).
  */
 
-const PREVIEW_URL = '/api/preview';
+function getPreviewUrl() {
+  return (app.forum && app.forum.attribute && app.forum.attribute('apiUrl')) ? app.forum.attribute('apiUrl') + '/preview' : '/api/preview';
+}
 
 /**
  * Extract HTML from preview API response. Flarum and extensions may return different shapes.
@@ -31,7 +33,7 @@ export function extractHtmlFromResponse(data) {
  */
 export async function fetchPreview(content, options = {}) {
   const { credentials = 'same-origin', signal } = options;
-  const res = await fetch(PREVIEW_URL, {
+  const res = await fetch(getPreviewUrl(), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

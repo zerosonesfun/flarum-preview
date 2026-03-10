@@ -1,6 +1,6 @@
 {
     "name": "zerosonesfun/flarum-preview",
-    "description": "Live visual preview overlay for the Flarum composer (mirror-overlay). Single source of truth: textarea (raw Markdown/BBCode).",
+    "description": "Live preview for the Flarum composer: split panel below editor or eye-button toggle. Single source of truth: textarea (raw Markdown/BBCode).",
     "keywords": [
         "flarum",
         "extension",

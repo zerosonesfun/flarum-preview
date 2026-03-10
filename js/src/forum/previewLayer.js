@@ -140,6 +140,8 @@ export function createPreviewLayer(textarea, layerEl, options = {}) {
   textarea.addEventListener('keyup', reevaluateVisibility);
   textarea.addEventListener('click', reevaluateVisibility);
 
+  requestPreview();
+
   return {
     refresh() {
       requestPreview();

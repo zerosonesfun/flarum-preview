@@ -13,24 +13,24 @@ import { wrapComposerTextarea, wrapAllComposerTextareas } from './composerWrappe
 extend(TextEditor.prototype, 'controlItems', function (original) {
   const items = original();
   const previewOnClick = app.forum && (app.forum.attribute('previewOnClickMode') === '1' || app.forum.attribute('previewOnClickMode') === true);
-  if (previewOnClick) {
-    if (this.attrs.preview) items.remove('preview');
-    const composer = this.element && this.element.closest && this.element.closest('.Composer');
-    const isActive = composer && composer.getAttribute('data-preview-visible') === 'true';
-    items.add(
-      'preview',
-      Button.component({
-        className: 'Button Button--icon hasIcon PreviewToggleBtn' + (isActive ? ' active' : ''),
-        icon: 'far fa-eye',
-        onclick(e) {
-          const el = e && e.target && e.target.closest && e.target.closest('.Composer');
-          if (el) el.dispatchEvent(new CustomEvent('flarum-preview-toggle'));
-        },
-        'aria-label': typeof app.translator !== 'undefined' ? app.translator.trans('core.forum.composer.preview') : 'Preview',
-      }),
-      15
-    );
-  }
+  if (!previewOnClick || typeof Button.component !== 'function') return items;
+  if (this.attrs.preview) items.remove('preview');
+  const composer = this.element && this.element.closest && this.element.closest('.Composer');
+  const isActive = composer && composer.getAttribute('data-preview-visible') === 'true';
+  const trans = app.translator && typeof app.translator.trans === 'function' ? app.translator.trans('core.forum.composer.preview') : 'Preview';
+  items.add(
+    'preview',
+    Button.component({
+      className: 'Button Button--icon hasIcon PreviewToggleBtn' + (isActive ? ' active' : ''),
+      icon: 'far fa-eye',
+      onclick(e) {
+        const el = e && e.target && e.target.closest && e.target.closest('.Composer');
+        if (el) el.dispatchEvent(new CustomEvent('flarum-preview-toggle'));
+      },
+      'aria-label': trans,
+    }),
+    15
+  );
   return items;
 });
 
