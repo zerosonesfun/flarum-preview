@@ -204,7 +204,6 @@ function attachPreviewOnClickMode(textarea, app) {
   wrap.className = WRAP_CLASS + ' PreviewComposerWrap--clickMode';
   wrap.setAttribute('data-preview-click-mode', '1');
 
-  const editorContainer = textarea.closest('.TextEditor-editorContainer');
   const container = document.createElement('div');
   container.className = 'PreviewClickContainer';
   container.style.cssText = 'position:relative; display:flex; flex-direction:column; flex:1; min-height:0;';
@@ -214,15 +213,24 @@ function attachPreviewOnClickMode(textarea, app) {
   previewBox.style.cssText = 'display:none; flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; padding:12px; background:var(--body-bg, #fff);';
   previewBox.setAttribute('aria-hidden', 'true');
 
-  function applyEditorHeight() {
-    if (editorContainer && wrap.parentNode) {
-      const h = editorContainer.offsetHeight;
-      if (h > 0) wrap.style.maxHeight = h + 'px';
-    }
+  function getTextareaHeightPx() {
+    const inline = textarea.style.height;
+    if (inline && inline.endsWith('px')) return parseInt(inline, 10);
+    return textarea.offsetHeight;
   }
-  applyEditorHeight();
-  const ro = editorContainer && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(applyEditorHeight) : null;
-  if (ro && editorContainer) ro.observe(editorContainer);
+  function syncWrapHeightToTextarea() {
+    if (!wrap.parentNode) return;
+    const h = getTextareaHeightPx();
+    if (h > 0) wrap.style.height = h + 'px';
+  }
+  syncWrapHeightToTextarea();
+  const ro =
+    typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(() => syncWrapHeightToTextarea())
+      : null;
+  if (ro) ro.observe(textarea);
+  const styleObs = new MutationObserver(() => syncWrapHeightToTextarea());
+  styleObs.observe(textarea, { attributes: true, attributeFilter: ['style'] });
 
   const eyeWrap = document.createElement('div');
   eyeWrap.className = 'PreviewEyeFloating';
@@ -295,7 +303,8 @@ function attachPreviewOnClickMode(textarea, app) {
 
   textarea[ATTR_WRAPPED] = '1';
   return () => {
-    if (ro && editorContainer) ro.disconnect();
+    if (ro) ro.disconnect();
+    styleObs.disconnect();
     const composerEl = getComposerEl();
     if (composerEl) {
       composerEl.classList.remove('Composer--previewClickMode');
