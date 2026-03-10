@@ -5,10 +5,8 @@ Live preview for the Flarum composer. **Textarea is always the source of truth**
 ## What the plugin does (current behavior)
 
 - **Default (Preview on click OFF)**  
-  - Composer: top ~3/4 = textarea, bottom ~1/4 = **split preview panel** (server-rendered HTML, debounced).  
-  - Tap the preview panel header to **expand/collapse** the bottom area (slide, more/less preview).  
-  - Preview updates as you type (debounce + optional instant triggers).  
-  - Click-to-edit: click a link in the preview → focus textarea and select that range.
+  - Composer: top = textarea, bottom = **split preview panel** (server-rendered HTML, debounced). Panel is open by default; tap the header to collapse/expand.  
+  - Preview updates as you type (debounce + optional instant triggers).
 
 - **Preview on click ON**  
   - **Split view is hidden.** No bottom preview panel.  
@@ -23,15 +21,13 @@ Live preview for the Flarum composer. **Textarea is always the source of truth**
 
 - **Backend**  
   - `POST /api/preview`: body `{ content }` → JSON with rendered HTML (Flarum Formatter).  
-  - Client uses tokenizer for mapping (click-to-edit) and template detection; all rendering is server-side.
+  - Client uses tokenizer for template detection only; all rendering is server-side.
 
 ## How it works
 
 - **Split view (default):** The composer body is wrapped: textarea in the top portion, a preview panel below. The panel shows server-rendered HTML; you can expand/collapse it by tapping its header.
 - **Server preview**: Content is sent to `POST /api/preview` (same pipeline as Flarum’s TextFormatter: Markdown + BBCode + extensions). The extension registers this route and uses Flarum’s `Formatter` to parse and render.
-- **Client tokenizer**: A small client-side tokenizer recognizes common Markdown (headings, bold, italic, code, lists, links, images, blockquotes). It is used only to:
-  - Map rendered DOM back to source ranges so **click-to-edit** works (e.g. click a link in the preview to focus the textarea and select the raw `[text](url)`).
-  - Detect **default toolbar templates** (e.g. `[link](https://)`, `**bold**`) and avoid rendering them until the user edits the placeholder.
+- **Client tokenizer**: A small client-side tokenizer recognizes common Markdown (headings, bold, italic, code, lists, links, images, blockquotes). It is used only to detect **default toolbar templates** (e.g. `[link](https://)`, `**bold**`) and avoid rendering them until the user edits the placeholder.
 - **BBCode / unknown tags**: Not parsed on the client. Full content is sent to the server; the server returns HTML. The client does not assume any BBCode extension; it relies on the server preview for unknown tags.
 
 ## Install
@@ -72,20 +68,16 @@ This produces `js/dist/forum.js` and `js/dist/admin.js`. Use `npm run dev` for w
 ## Design decisions
 
 - **Why client tokenizer + server preview?**  
-  The server is the only place that knows the full TextFormatter pipeline (Markdown, BBCode, extensions). The client tokenizer is minimal and used only for mapping and template detection, not for rendering. All rendered HTML comes from the server.
+  The server is the only place that knows the full TextFormatter pipeline (Markdown, BBCode, extensions). The client tokenizer is minimal and used only for template detection, not for rendering. All rendered HTML comes from the server.
 - **Why not render toolbar templates until edited?**  
   Placeholders like `[link](https://)` are treated as templates; they are not shown as rendered links until the user changes the label or URL. This avoids flashing a “link” link and keeps the UX clear.
-- **Click-to-edit:**  
-  Rendered links (and optionally other mapped elements) are annotated with `data-md-start` and `data-md-end`. Clicking them focuses the textarea and selects the corresponding raw range so the user can edit the source.
 
 ## Known edge cases
 
-- **Duplicate link text:**  
-  Mapping uses token order (first link token → first `<a>` in the preview). If you have multiple identical links, the first match is used; in ambiguous cases we do not map (click focuses textarea at an approximate position).
 - **Very long content:**  
   Debouncing and optional instant triggers limit server calls; for very large posts, consider increasing debounce or disabling instant triggers.
 - **BBCode-only content:**  
-  Preview is correct (server handles it). Click-to-edit may not map BBCode tags that the client tokenizer does not understand; the textarea is still the source of truth and can be edited normally.
+  Preview is correct (server handles it). The textarea is always the source of truth and can be edited normally.
 
 ## Troubleshooting
 
@@ -143,7 +135,7 @@ To enable the tests (remove `test.skip`), edit `tests/e2e/preview.spec.js` and d
    `cp -r /path/to/flarum-preview /path/to/flarum/extensions/zerosonesfun-preview`
 2. Clear cache: `php flarum cache:clear`
 3. In Admin → Extensions, enable **Preview**.
-4. Open a discussion and use Reply; the composer should show the live preview overlay.
+4. Open a discussion and use Reply; the composer should show the split preview panel below the textarea.
 
 ## Repository
 

@@ -76,7 +76,9 @@ export function wrapComposerTextarea(textarea, app) {
     expanded = !!value;
     panel.setAttribute('aria-expanded', expanded ? 'true' : 'false');
     panel.classList.toggle('PreviewPanel--expanded', expanded);
+    panel.classList.toggle('PreviewPanel--collapsed', !expanded);
   }
+  setExpanded(true);
   panelHeader.addEventListener('click', () => setExpanded(!expanded));
 
   textarea[ATTR_WRAPPED] = '1';
@@ -115,7 +117,7 @@ function attachPreviewOnClickMode(textarea, app) {
 
   const previewBox = document.createElement('div');
   previewBox.className = 'PreviewClickBox';
-  previewBox.style.cssText = 'display:none; flex:1; overflow:auto; padding:12px; border:1px solid var(--input-border-color, #ccc); border-radius:4px; background:var(--body-bg, #fff);';
+  previewBox.style.cssText = 'display:none; flex:1; overflow:auto; padding:12px; background:var(--body-bg, #fff);';
   previewBox.setAttribute('aria-hidden', 'true');
 
   const parent = textarea.parentNode;
@@ -167,20 +169,7 @@ function attachPreviewOnClickMode(textarea, app) {
     }
   }
 
-  function injectEyeButton() {
-    const composer = getComposerEl();
-    if (!composer) return;
-    const list = composer.querySelector('ul');
-    if (!list || !list.querySelector) return;
-    if (list.querySelector('[data-preview-eye-injected]')) return;
-
-    const submitLi = list.querySelector('.item-submit');
-    const defaultPreviewLi = list.querySelector('.item-preview');
-    const insertBefore = submitLi || defaultPreviewLi || list.firstChild;
-
-    const li = document.createElement('li');
-    li.className = 'item-preview PreviewEyeItem';
-    li.setAttribute('data-preview-eye-injected', '1');
+  function makeEyeButton() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'Button Button--icon hasIcon PreviewToggleBtn';
@@ -191,9 +180,48 @@ function attachPreviewOnClickMode(textarea, app) {
       e.preventDefault();
       toggle();
     });
-    li.appendChild(btn);
-    list.insertBefore(li, insertBefore);
-    injectedEye = li;
+    return btn;
+  }
+
+  function injectEyeButton() {
+    const composer = getComposerEl();
+    if (!composer) return;
+    if (composer.querySelector('[data-preview-eye-injected]')) return;
+
+    const btn = makeEyeButton();
+
+    const list = Array.from(composer.querySelectorAll('ul')).find(
+      (ul) => ul.querySelector('.item-submit') || ul.querySelector('.fa-paper-plane')
+    );
+    if (list) {
+      const submitLi = list.querySelector('.item-submit');
+      const defaultPreviewLi = list.querySelector('.item-preview');
+      const insertBefore = submitLi || defaultPreviewLi || list.firstChild;
+      const li = document.createElement('li');
+      li.className = 'item-preview PreviewEyeItem';
+      li.setAttribute('data-preview-eye-injected', '1');
+      li.appendChild(btn);
+      list.insertBefore(li, insertBefore);
+      injectedEye = li;
+    } else {
+      const submitBtn =
+        composer.querySelector('.fa-paper-plane')?.closest('button') ||
+        composer.querySelector('button.Button--primary');
+      if (submitBtn && submitBtn.parentNode) {
+        const parent = submitBtn.parentNode;
+        const wrapper =
+          parent.tagName === 'UL'
+            ? document.createElement('li')
+            : document.createElement('div');
+        wrapper.className = 'PreviewEyeItem';
+        wrapper.setAttribute('data-preview-eye-injected', '1');
+        wrapper.appendChild(btn);
+        parent.insertBefore(wrapper, submitBtn);
+        injectedEye = wrapper;
+      } else {
+        return;
+      }
+    }
     composer.classList.add('Composer--previewClickMode');
     updateInjectedButtonActive();
   }

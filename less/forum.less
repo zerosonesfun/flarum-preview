@@ -1,16 +1,18 @@
-/* Preview extension: composer top 3/4 textarea, bottom 1/4 preview panel. Tap header to expand. */
+/* Preview extension: composer top = textarea, bottom = preview panel. Collapsed by default; tap header to expand/collapse. */
 
 .PreviewComposerWrap {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 
   .PreviewComposerTextareaWrap {
-    flex: 3;
+    flex: 1 1 auto;
     min-height: 0;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 
     textarea {
       flex: 1;
@@ -20,18 +22,28 @@
 }
 
 .PreviewPanel {
-  flex: 1 1 25%;
-  min-height: 100px;
-  max-height: 40vh;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
+  min-height: 0;
   border-top: 1px solid var(--input-border-color, #e0e0e0);
   background: var(--body-bg, #fff);
-  transition: flex 0.25s ease, max-height 0.25s ease;
+  transition: max-height 0.25s ease;
+
+  &.PreviewPanel--collapsed {
+    max-height: 44px;
+
+    .PreviewPanel-body {
+      display: none;
+    }
+  }
 
   &.PreviewPanel--expanded {
-    flex: 2 1 50%;
-    max-height: 70vh;
+    max-height: 50vh;
+
+    .PreviewPanel-body {
+      display: block;
+    }
   }
 }
 
@@ -40,12 +52,13 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 8px 12px;
+  padding: 5px 12px;
   border: 0;
   background: var(--control-bg, #f5f5f5);
   color: var(--text-color, #333);
   font-size: 13px;
   cursor: pointer;
+  flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
 
   &:hover {
@@ -73,17 +86,13 @@
 }
 
 .PreviewPanel-body {
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 12px;
   font-size: 14px;
   line-height: 1.6;
-
-  a[data-preview-mapped],
-  img[data-preview-mapped] {
-    cursor: pointer;
-  }
 }
 
 .PreviewLayer-error {
@@ -99,4 +108,26 @@
 .Composer[data-preview-visible='true'] .PreviewToggleBtn.active,
 .Composer[data-preview-visible='true'] .PreviewEyeItem .PreviewToggleBtn {
   opacity: 1;
+}
+
+/* Preview-on-click: no border around the preview box */
+.PreviewComposerWrap--clickMode .PreviewClickBox {
+  border: none;
+}
+
+/* Mobile: ensure eye button is visible and to the left of the paper plane (submit). */
+.PreviewEyeItem {
+  display: flex !important;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .Composer--previewClickMode .PreviewEyeItem {
+    display: flex !important;
+    order: -1;
+  }
+
+  .Composer--previewClickMode .PreviewEyeItem .PreviewToggleBtn {
+    margin-right: 4px;
+  }
 }

@@ -3,7 +3,7 @@
  * annotates DOM for click-to-edit, handles click to focus textarea at token range.
  */
 
-import { annotatePreviewDom, getMappingFromClick } from './domMapping.js';
+import { annotatePreviewDom } from './domMapping.js';
 import { tokenize, cursorInsideToken, isTemplateToken } from './tokenizer.js';
 import { fetchPreview } from './serverPreview.js';
 
@@ -119,19 +119,6 @@ export function createPreviewLayer(textarea, layerEl, options = {}) {
     layerEl.scrollTop = textarea.scrollTop;
     layerEl.scrollLeft = textarea.scrollLeft;
   }
-
-  layerEl.addEventListener('click', (e) => {
-    const mapping = getMappingFromClick(e.target);
-    if (mapping) {
-      e.preventDefault();
-      e.stopPropagation();
-      textarea.focus();
-      textarea.setSelectionRange(mapping.start, mapping.end);
-      textarea.dispatchEvent(new Event('input', { bubbles: true }));
-    } else {
-      textarea.focus();
-    }
-  });
 
   if (enableScrollSync) {
     textarea.addEventListener('scroll', scrollSync);
