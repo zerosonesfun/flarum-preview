@@ -228,6 +228,7 @@ function attachPreviewOnClickMode(textarea, app) {
     return Math.max(0, editorRow.offsetHeight - footerH);
   }
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+  let mobileSyncPaused = false;
   function getTextareaHeightMobileOnly() {
     const inline = textarea.style.height;
     if (inline && inline.endsWith('px')) return parseInt(inline, 10);
@@ -236,6 +237,7 @@ function attachPreviewOnClickMode(textarea, app) {
   function syncWrapHeight() {
     if (!wrap.parentNode) return;
     if (isMobile && showingPreview) return;
+    if (isMobile && mobileSyncPaused) return;
     let h = 0;
     if (isMobile) {
       h = getTextareaHeightMobileOnly();
@@ -325,6 +327,7 @@ function attachPreviewOnClickMode(textarea, app) {
       previewBox.style.maxHeight = '';
       previewBox.style.display = 'none';
       textarea.style.display = 'block';
+      if (isMobile) mobileSyncPaused = true;
     }
     syncWrapHeight();
     const composer = getComposerEl();
@@ -339,8 +342,17 @@ function attachPreviewOnClickMode(textarea, app) {
     toggle();
   });
 
+  function onTextareaFocus() {
+    if (isMobile && mobileSyncPaused) {
+      mobileSyncPaused = false;
+      syncWrapHeight();
+    }
+  }
+  textarea.addEventListener('focus', onTextareaFocus);
+
   textarea[ATTR_WRAPPED] = '1';
   return () => {
+    textarea.removeEventListener('focus', onTextareaFocus);
     if (ro) ro.disconnect();
     styleObs.disconnect();
     const composerEl = getComposerEl();
