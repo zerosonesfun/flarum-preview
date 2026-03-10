@@ -71,15 +71,70 @@ export function wrapComposerTextarea(textarea, app) {
   textarea.style.flex = '1';
   textarea.style.minHeight = '0';
 
+  const EXPANDED_DEFAULT_HEIGHT = 80;
+  const MIN_TEXTAREA_HEIGHT = 80;
+
   let expanded = false;
+  let didDrag = false;
+
+  function getMaxPanelHeight() {
+    const h = wrap.offsetHeight;
+    return Math.max(EXPANDED_DEFAULT_HEIGHT, (h || 0) - MIN_TEXTAREA_HEIGHT);
+  }
+
   function setExpanded(value) {
     expanded = !!value;
     panel.setAttribute('aria-expanded', expanded ? 'true' : 'false');
     panel.classList.toggle('PreviewPanel--expanded', expanded);
     panel.classList.toggle('PreviewPanel--collapsed', !expanded);
+    if (expanded) {
+      panel.style.height = EXPANDED_DEFAULT_HEIGHT + 'px';
+      panel.style.maxHeight = getMaxPanelHeight() + 'px';
+    } else {
+      panel.style.height = '';
+      panel.style.maxHeight = '';
+    }
   }
+
+  function onHeaderPointerDown(e) {
+    didDrag = false;
+    if (!expanded) return;
+    const startY = e.clientY !== undefined ? e.clientY : e.touches[0].clientY;
+    const startHeight = panel.offsetHeight;
+    const maxH = getMaxPanelHeight();
+
+    function move(e) {
+      didDrag = true;
+      const currentY = e.clientY !== undefined ? e.clientY : e.touches[0].clientY;
+      const deltaY = startY - currentY;
+      const newHeight = Math.max(EXPANDED_DEFAULT_HEIGHT, Math.min(maxH, startHeight + deltaY));
+      panel.classList.add('PreviewPanel--dragging');
+      panel.style.height = newHeight + 'px';
+    }
+
+    function stop() {
+      panel.classList.remove('PreviewPanel--dragging');
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', stop);
+      document.removeEventListener('touchmove', move, { passive: true });
+      document.removeEventListener('touchend', stop);
+    }
+
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', stop);
+    document.addEventListener('touchmove', move, { passive: true });
+    document.addEventListener('touchend', stop);
+  }
+
+  panelHeader.addEventListener('mousedown', onHeaderPointerDown);
+  panelHeader.addEventListener('touchstart', onHeaderPointerDown, { passive: true });
+
+  panelHeader.addEventListener('click', (e) => {
+    if (didDrag) return;
+    setExpanded(!expanded);
+  });
+
   setExpanded(true);
-  panelHeader.addEventListener('click', () => setExpanded(!expanded));
 
   textarea[ATTR_WRAPPED] = '1';
 
@@ -102,8 +157,8 @@ export function wrapComposerTextarea(textarea, app) {
 }
 
 /**
- * Preview-on-click mode: eye button is injected into the composer controls via DOM
- * (no TextEditor extend) to avoid conflicts with other extensions. Default .item-preview is hidden with CSS.
+ * Preview-on-click mode: eye button floats bottom-right of the textarea, semi-transparent.
+ * Does not sit in the toolbar, so it does not add height or eat typing space. Default .item-preview hidden via CSS.
  */
 function attachPreviewOnClickMode(textarea, app) {
   if (textarea[ATTR_WRAPPED]) return () => {};
@@ -120,17 +175,29 @@ function attachPreviewOnClickMode(textarea, app) {
   previewBox.style.cssText = 'display:none; flex:1; overflow:auto; padding:12px; background:var(--body-bg, #fff);';
   previewBox.setAttribute('aria-hidden', 'true');
 
+  const eyeWrap = document.createElement('div');
+  eyeWrap.className = 'PreviewEyeFloating';
+  const eyeBtn = document.createElement('button');
+  eyeBtn.type = 'button';
+  eyeBtn.className = 'Button Button--icon hasIcon PreviewToggleBtn';
+  eyeBtn.setAttribute('aria-label', 'Preview');
+  eyeBtn.title = 'Preview';
+  eyeBtn.innerHTML = '<i class="icon far fa-eye Button-icon" aria-hidden="true"></i><span class="Button-label"></span>';
+  eyeWrap.appendChild(eyeBtn);
+
   const parent = textarea.parentNode;
   const next = textarea.nextSibling;
   parent.insertBefore(wrap, next);
   wrap.appendChild(container);
   container.appendChild(previewBox);
   container.appendChild(textarea);
+  container.appendChild(eyeWrap);
+
+  const composerRoot = textarea.closest && textarea.closest('.Composer');
+  if (composerRoot) composerRoot.classList.add('Composer--previewClickMode');
 
   let showingPreview = false;
   let lastHtml = '';
-  let injectedEye = null;
-  let observer = null;
 
   function getComposerEl() {
     return textarea.closest && textarea.closest('.Composer');
@@ -152,104 +219,32 @@ function attachPreviewOnClickMode(textarea, app) {
       fetchAndShow();
       previewBox.style.display = 'block';
       textarea.style.display = 'none';
+      eyeWrap.style.display = 'none';
     } else {
       previewBox.style.display = 'none';
       textarea.style.display = 'block';
+      eyeWrap.style.display = '';
     }
     const composer = getComposerEl();
     if (composer) composer.setAttribute('data-preview-visible', showingPreview ? 'true' : 'false');
-    updateInjectedButtonActive();
+    if (showingPreview) eyeBtn.classList.add('active');
+    else eyeBtn.classList.remove('active');
   }
 
-  function updateInjectedButtonActive() {
-    if (!injectedEye) return;
-    const btn = injectedEye.querySelector && injectedEye.querySelector('button');
-    if (btn) {
-      if (showingPreview) btn.classList.add('active'); else btn.classList.remove('active');
-    }
-  }
-
-  function makeEyeButton() {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'Button Button--icon hasIcon PreviewToggleBtn';
-    btn.setAttribute('aria-label', 'Preview');
-    btn.title = 'Preview';
-    btn.innerHTML = '<i class="icon far fa-eye Button-icon" aria-hidden="true"></i><span class="Button-label"></span>';
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      toggle();
-    });
-    return btn;
-  }
-
-  function injectEyeButton() {
-    const composer = getComposerEl();
-    if (!composer) return;
-    if (composer.querySelector('[data-preview-eye-injected]')) return;
-
-    const btn = makeEyeButton();
-
-    const list = Array.from(composer.querySelectorAll('ul')).find(
-      (ul) => ul.querySelector('.item-submit') || ul.querySelector('.fa-paper-plane')
-    );
-    if (list) {
-      const submitLi = list.querySelector('.item-submit');
-      const defaultPreviewLi = list.querySelector('.item-preview');
-      const insertBefore = submitLi || defaultPreviewLi || list.firstChild;
-      const li = document.createElement('li');
-      li.className = 'item-preview PreviewEyeItem';
-      li.setAttribute('data-preview-eye-injected', '1');
-      li.appendChild(btn);
-      list.insertBefore(li, insertBefore);
-      injectedEye = li;
-    } else {
-      const submitBtn =
-        composer.querySelector('.fa-paper-plane')?.closest('button') ||
-        composer.querySelector('button.Button--primary');
-      if (submitBtn && submitBtn.parentNode) {
-        const parent = submitBtn.parentNode;
-        const wrapper =
-          parent.tagName === 'UL'
-            ? document.createElement('li')
-            : document.createElement('div');
-        wrapper.className = 'PreviewEyeItem';
-        wrapper.setAttribute('data-preview-eye-injected', '1');
-        wrapper.appendChild(btn);
-        parent.insertBefore(wrapper, submitBtn);
-        injectedEye = wrapper;
-      } else {
-        return;
-      }
-    }
-    composer.classList.add('Composer--previewClickMode');
-    updateInjectedButtonActive();
-  }
-
-  function ensureEyeInjected() {
-    const composer = getComposerEl();
-    if (!composer || !textarea[ATTR_WRAPPED]) return;
-    if (!composer.querySelector('[data-preview-eye-injected]')) injectEyeButton();
-  }
-
-  observer = new MutationObserver(() => {
-    ensureEyeInjected();
+  eyeBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggle();
   });
-  const composerRoot = getComposerEl();
-  if (composerRoot) {
-    observer.observe(composerRoot, { childList: true, subtree: true });
-    setTimeout(ensureEyeInjected, 0);
-  }
 
   textarea[ATTR_WRAPPED] = '1';
   return () => {
-    if (observer) observer.disconnect();
-    if (injectedEye && injectedEye.parentNode) injectedEye.parentNode.removeChild(injectedEye);
-    injectedEye = null;
     const composerEl = getComposerEl();
-    if (composerEl) composerEl.classList.remove('Composer--previewClickMode');
+    if (composerEl) {
+      composerEl.classList.remove('Composer--previewClickMode');
+      composerEl.removeAttribute('data-preview-visible');
+    }
     textarea.removeAttribute(ATTR_WRAPPED);
-    if (composerEl) composerEl.removeAttribute('data-preview-visible');
     if (wrap.parentNode) {
       wrap.parentNode.insertBefore(textarea, wrap);
       wrap.remove();

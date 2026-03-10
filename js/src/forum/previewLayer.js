@@ -69,6 +69,7 @@ export function createPreviewLayer(textarea, layerEl, options = {}) {
       layerEl.style.visibility = "visible";
       layerEl.innerHTML = lastHtml;
       annotatePreviewDom(layerEl, textarea.value);
+      scrollCursorIntoView();
       return;
     }
     const content = textarea.value;
@@ -81,11 +82,32 @@ export function createPreviewLayer(textarea, layerEl, options = {}) {
     layerEl.style.visibility = "visible";
     layerEl.innerHTML = lastHtml;
     annotatePreviewDom(layerEl, content);
+    scrollCursorIntoView();
   }
+
+  function getCursorLineIndex() {
+    const text = textarea.value || '';
+    const pos = Math.min(textarea.selectionStart || 0, text.length);
+    return text.slice(0, pos).split(/\r?\n/).length - 1;
+  }
+
+  function scrollCursorIntoView() {
+    if (!layerEl || !layerEl.firstChild) return;
+    const lineIndex = getCursorLineIndex();
+    const blocks = layerEl.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, blockquote, pre');
+    const idx = Math.min(lineIndex, Math.max(0, blocks.length - 1));
+    const el = blocks[idx];
+    if (el && el.scrollIntoView) {
+      el.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+    }
+  }
+
+  const debouncedScrollIntoView = debounce(scrollCursorIntoView, 50);
 
   function updatePreviewHtml(html) {
     lastHtml = html;
     reevaluateVisibility();
+    scrollCursorIntoView();
   }
 
   function requestPreview() {
@@ -123,9 +145,18 @@ export function createPreviewLayer(textarea, layerEl, options = {}) {
   if (enableScrollSync) {
     textarea.addEventListener('scroll', scrollSync);
   }
-  textarea.addEventListener('input', schedulePreview);
-  textarea.addEventListener('keyup', reevaluateVisibility);
-  textarea.addEventListener('click', reevaluateVisibility);
+  textarea.addEventListener('input', () => {
+    schedulePreview();
+    debouncedScrollIntoView();
+  });
+  textarea.addEventListener('keyup', () => {
+    reevaluateVisibility();
+    debouncedScrollIntoView();
+  });
+  textarea.addEventListener('click', () => {
+    reevaluateVisibility();
+    scrollCursorIntoView();
+  });
 
   requestPreview();
 

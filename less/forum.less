@@ -39,11 +39,16 @@
   }
 
   &.PreviewPanel--expanded {
-    max-height: 50vh;
+    height: 80px;
+    min-height: 80px;
 
     .PreviewPanel-body {
       display: block;
     }
+  }
+
+  &.PreviewPanel--dragging {
+    transition: none;
   }
 }
 
@@ -60,6 +65,8 @@
   cursor: pointer;
   flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
 
   &:hover {
     background: var(--control-bg-hover, #eee);
@@ -100,34 +107,35 @@
   padding: 0.5em 0;
 }
 
-/* Preview-on-click mode: hide Flarum's default preview button; we inject our own (DOM) to avoid extend conflicts. */
-.Composer--previewClickMode .item-preview:not([data-preview-eye-injected]) {
+/* Preview-on-click mode: hide Flarum's default preview button; we use a floating eye instead. */
+.Composer--previewClickMode .item-preview {
   display: none !important;
 }
 
-.Composer[data-preview-visible='true'] .PreviewToggleBtn.active,
-.Composer[data-preview-visible='true'] .PreviewEyeItem .PreviewToggleBtn {
-  opacity: 1;
+/* Floating eye: bottom-right of textarea, semi-transparent; does not add to toolbar height. */
+.PreviewEyeFloating {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 2;
+  pointer-events: auto;
+
+  .PreviewToggleBtn {
+    opacity: 0.65;
+    background: var(--body-bg, #fff);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  }
+
+  .PreviewToggleBtn:hover {
+    opacity: 0.9;
+  }
+
+  .PreviewToggleBtn.active {
+    opacity: 1;
+  }
 }
 
 /* Preview-on-click: no border around the preview box */
 .PreviewComposerWrap--clickMode .PreviewClickBox {
   border: none;
-}
-
-/* Mobile: ensure eye button is visible and to the left of the paper plane (submit). */
-.PreviewEyeItem {
-  display: flex !important;
-  align-items: center;
-}
-
-@media (max-width: 768px) {
-  .Composer--previewClickMode .PreviewEyeItem {
-    display: flex !important;
-    order: -1;
-  }
-
-  .Composer--previewClickMode .PreviewEyeItem .PreviewToggleBtn {
-    margin-right: 4px;
-  }
 }
