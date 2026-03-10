@@ -79,35 +79,24 @@ export function wrapComposerTextarea(textarea, app) {
   let expanded = false;
   let didDrag = false;
 
-  const editorRow = wrap.closest('.ComposerBody-editor');
-  const footerEl = editorRow ? editorRow.querySelector('.Composer-footer') : null;
-  const MIN_PANEL_HEIGHT = 44;
-
-  function updateWrapHeight() {
-    if (!editorRow || !wrap.parentNode) return;
-    const editorH = editorRow.offsetHeight;
-    const footerH = footerEl ? footerEl.offsetHeight : 0;
-    const available = Math.max(0, editorH - footerH);
-    const textareaH = textarea.offsetHeight;
-    const panelH = Math.max(MIN_PANEL_HEIGHT, available - textareaH);
-    if (available > 0) {
-      wrap.style.height = available + 'px';
-      if (expanded) {
-        panel.style.setProperty('height', panelH + 'px', 'important');
-        panel.style.setProperty('max-height', panelH + 'px', 'important');
-      }
-    }
+  function getTextareaHeightPx() {
+    const inline = textarea.style.height;
+    if (inline && inline.endsWith('px')) return parseInt(inline, 10);
+    return textarea.offsetHeight;
   }
 
-  updateWrapHeight();
+  function syncWrapHeightToTextarea() {
+    if (!wrap.parentNode) return;
+    const h = getTextareaHeightPx();
+    if (h > 0) wrap.style.height = h + 'px';
+  }
+
+  syncWrapHeightToTextarea();
   const resizeObserver =
-    typeof ResizeObserver !== 'undefined' && editorRow
-      ? new ResizeObserver(() => updateWrapHeight())
+    typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(() => syncWrapHeightToTextarea())
       : null;
-  if (resizeObserver && editorRow) {
-    resizeObserver.observe(editorRow);
-    resizeObserver.observe(textarea);
-  }
+  if (resizeObserver) resizeObserver.observe(textarea);
 
   function getMaxPanelHeight() {
     let h = wrap.offsetHeight;
@@ -188,7 +177,7 @@ export function wrapComposerTextarea(textarea, app) {
   });
 
   return () => {
-    if (resizeObserver && editorRow) resizeObserver.disconnect();
+    if (resizeObserver) resizeObserver.disconnect();
     controller.destroy();
     const composer = textarea.closest('.Composer');
     if (composer) composer.classList.remove('Composer--hasPreview');
