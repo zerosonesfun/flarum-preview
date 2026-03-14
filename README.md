@@ -1,15 +1,6 @@
-# Preview (zerosonesfun/flarum-preview) — Flarum 2.x
-
-This is the **Flarum 2.0** compatible version of the extension. It lives in the **2.x** branch (or in the `2.0/` folder when developing). The **main** branch contains the 1.8.x version.
-
-> **Branches are separate.** Do **not** merge 2.x into main. `main` = Flarum 1.x, `2.x` = Flarum 2.x. They are independent release lines.
+# Preview (zerosonesfun/flarum-preview)
 
 Live preview for the Flarum composer. **Textarea is always the source of truth** (raw Markdown/BBCode); preview is either a split panel below the editor or a full toggle via the eye button.
-
-## Requirements
-
-- **Flarum** ^2.0.0-beta
-- **PHP** >= 8.2
 
 ## How it works
 
@@ -21,35 +12,43 @@ Live preview for the Flarum composer. **Textarea is always the source of truth**
 - **Preview on click ON**  
   - **Split view is hidden.** No bottom preview panel.  
   - **Eye button** appears in the composer. 
+  - Reply composer: Flarum’s default preview button is replaced by this one. 
   - Click eye → **full preview** (textarea hidden, only rendered HTML). Click again → back to textarea.
 
-- **Settings** (registered via Flarum 2.0 Admin extender)  
+- **Settings**  
   - **Preview debounce (ms):** Delay before calling `POST /api/preview` (default 300).  
   - **Instant triggers:** If ON, preview is requested immediately on certain keystrokes (e.g. closing `**`, ` ``` `) as well as after debounce.  
-  - **Preview on click:** When ON, split view is off and eye toggles full preview.
+  - **Preview on click:** See above; when ON, split view is off and eye toggles full preview.
 
 - **Backend**  
   - `POST /api/preview`: body `{ content }` → JSON with rendered HTML (Flarum Formatter).  
   - Client uses tokenizer for template detection only; all rendering is server-side.
 
-## Install (2.x branch)
+## Developer Notes
 
-When using the 2.x branch, the extension root is the repository root (the contents of the `2.0/` folder are at the top level on that branch).
+- **Split view (default):** The composer body is wrapped: textarea in the top portion, a preview panel below. The panel shows server-rendered HTML; you can expand/collapse it by tapping its header.
+- **Server preview**: Content is sent to `POST /api/preview` (same pipeline as Flarum’s TextFormatter: Markdown + BBCode + extensions). The extension registers this route and uses Flarum’s `Formatter` to parse and render.
+- **Client tokenizer**: A small client-side tokenizer recognizes common Markdown (headings, bold, italic, code, lists, links, images, blockquotes). It is used only to detect **default toolbar templates** (e.g. `[link](https://)`, `**bold**`) and avoid rendering them until the user edits the placeholder.
+- **BBCode / unknown tags**: Not parsed on the client. Full content is sent to the server; the server returns HTML. The client does not assume any BBCode extension; it relies on the server preview for unknown tags.
 
-1. Clone or checkout the **2.x** branch into your Flarum `extensions` folder, or install via Composer when published:
+## Install
+
+1. Copy the extension into your Flarum `extensions` folder (or install via Composer when published):
    ```bash
+   cd /path/to/flarum
    composer require zerosonesfun/flarum-preview
    ```
+   Or clone/copy into `extensions/zerosonesfun-preview`.
 2. Clear cache and enable in Admin:
    ```bash
    php flarum cache:clear
    ```
-3. Enable **Administration → Extensions → Preview**.
-4. Rebuild frontend assets if your setup requires it (e.g. `php flarum build`).
+   Then **Administration → Extensions → Preview → Enable**.
+3. Rebuild frontend assets if your setup requires it (e.g. `php flarum build` if you use Flarum’s build pipeline).
 
-## Build JS (for development on 2.x)
+## Build JS (for development)
 
-From the extension root (or from the `2.0/` folder if you develop inside the monorepo):
+From the extension directory:
 
 ```bash
 npm install
@@ -58,13 +57,38 @@ npm run build
 
 This produces `js/dist/forum.js` and `js/dist/admin.js`. Use `npm run dev` for watch mode.
 
-## 2.0-specific changes
+## Admin settings
 
-- **PHP 8.2**: Constructor property promotion in `RenderPreviewController`.
-- **Admin settings**: Registered via the **Admin** frontend extender (`js/src/admin/extend.js`) instead of `app.extensionData`. Settings are still serialized to the forum with `Extend\Settings()->serializeToForum()`.
-- **Dependencies**: `flarum/core` ^2.0.0-beta, `flarum-webpack-config` ^3.0.0, `flarum-tsconfig` ^2.0.0 in package.json.
-- **No JSON:API changes**: This extension only adds a custom `POST /api/preview` route; no migration to the new API layer was required.
+- **Preview on click (eye icon)**  
+  When ON: live preview is off; users use an eye icon to toggle between raw composer and preview.
+- **Preview debounce (ms)**  
+  Delay before sending content to the server (default 300).
+- **Instant preview triggers**  
+  When ON: preview is requested immediately on certain keystrokes (e.g. closing `**` or ` ``` `) instead of only after debounce.
+
+## Known edge cases
+
+- **Very long content:**  
+  Debouncing and optional instant triggers limit server calls; for very large posts, consider increasing debounce or disabling instant triggers.
+- **BBCode-only content:**  
+  Preview is correct (server handles it). The textarea is always the source of truth and can be edited normally.
 
 ## License
 
-MIT.
+MIT. See [LICENSE](LICENSE).
+
+## Runbook (tests and build)
+
+### Build JS
+
+```bash
+cd /path/to/flarum-preview
+npm install
+npm run build
+```
+
+Produces `js/dist/forum.js` and `js/dist/admin.js`.
+
+## Repository
+
+`zerosonesfun/flarum-preview` — [GitHub](https://github.com/zerosonesfun/flarum-preview)
