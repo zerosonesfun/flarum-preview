@@ -29,16 +29,19 @@ Live preview for the Flarum composer. **Textarea is always the source of truth**
 - **Split view (default):** The composer body is wrapped: textarea in the top portion, a preview panel below. The panel shows server-rendered HTML; you can expand/collapse it by tapping its header.
 - **Server preview**: Content is sent to `POST /api/preview` (same pipeline as Flarum’s TextFormatter: Markdown + BBCode + extensions). The extension registers this route and uses Flarum’s `Formatter` to parse and render.
 - **Client tokenizer**: A small client-side tokenizer recognizes common Markdown (headings, bold, italic, code, lists, links, images, blockquotes). It is used only to detect **default toolbar templates** (e.g. `[link](https://)`, `**bold**`) and avoid rendering them until the user edits the placeholder.
-- **BBCode / unknown tags**: Not parsed on the client. Full content is sent to the server; the server returns HTML. The client does not assume any BBCode extension; it relies on the server preview for unknown tags.
 
 ## Install
 
 1. Copy the extension into your Flarum `extensions` folder (or install via Composer when published):
    ```bash
    cd /path/to/flarum
-   composer require zerosonesfun/flarum-preview
+   composer require zerosonesfun/flarum-preview:^1.0
    ```
-   Or clone/copy into `extensions/zerosonesfun-preview`.
+   Or for Flarum 2.0:
+      ```bash
+   cd /path/to/flarum
+   composer require zerosonesfun/flarum-preview:^2.0
+   ```
 2. Clear cache and enable in Admin:
    ```bash
    php flarum cache:clear
@@ -46,32 +49,13 @@ Live preview for the Flarum composer. **Textarea is always the source of truth**
    Then **Administration → Extensions → Preview → Enable**.
 3. Rebuild frontend assets if your setup requires it (e.g. `php flarum build` if you use Flarum’s build pipeline).
 
-## Build JS (for development)
-
-From the extension directory:
-
-```bash
-npm install
-npm run build
-```
-
-This produces `js/dist/forum.js` and `js/dist/admin.js`. Use `npm run dev` for watch mode.
-
-## Admin settings
-
-- **Preview on click (eye icon)**  
-  When ON: live preview is off; users use an eye icon to toggle between raw composer and preview.
-- **Preview debounce (ms)**  
-  Delay before sending content to the server (default 300).
-- **Instant preview triggers**  
-  When ON: preview is requested immediately on certain keystrokes (e.g. closing `**` or ` ``` `) instead of only after debounce.
-
-## Known edge cases
-
-- **Very long content:**  
-  Debouncing and optional instant triggers limit server calls; for very large posts, consider increasing debounce or disabling instant triggers.
-- **BBCode-only content:**  
-  Preview is correct (server handles it). The textarea is always the source of truth and can be edited normally.
+## Update/Remove
+   ```bash
+   composer update zerosonesfun/flarum-preview
+   ```
+   ```bash
+   composer remove zerosonesfun/flarum-preview
+   ```
 
 ## License
 
