@@ -1,0 +1,8 @@
+zerosonesfun-preview:
+  admin:
+    preview_on_click_mode_label: "Preview on click (eye icon)"
+    preview_on_click_mode_help: "When on, live preview is disabled. Users tap the eye icon to toggle between raw markdown and preview."
+    debounce_ms_label: "Preview debounce (ms)"
+    debounce_ms_help: "Delay before sending content to the server for preview (default 300)."
+    instant_triggers_label: "Instant preview triggers"
+    instant_triggers_help: "Trigger preview immediately on certain keystrokes (e.g. closing ** or ```) instead of waiting for debounce."

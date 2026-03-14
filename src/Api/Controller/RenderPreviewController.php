@@ -2,8 +2,9 @@
 
 namespace ZerosOnesFun\FlarumPreview\Api\Controller;
 
-use Flarum\Http\RequestUtil;
 use Flarum\Formatter\Formatter;
+use Flarum\Foundation\ValidationException;
+use Flarum\Http\RequestUtil;
 use Illuminate\Support\Arr;
 use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
@@ -21,6 +22,9 @@ class RenderPreviewController implements RequestHandlerInterface
     ) {
     }
 
+    /** Max request body length for preview content (bytes); avoids abuse. */
+    private const MAX_CONTENT_LENGTH = 2 * 1024 * 1024;
+
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         $actor = RequestUtil::getActor($request);
@@ -28,6 +32,12 @@ class RenderPreviewController implements RequestHandlerInterface
 
         $body = $request->getParsedBody();
         $content = (string) Arr::get($body, 'content', '');
+
+        if (strlen($content) > self::MAX_CONTENT_LENGTH) {
+            throw new ValidationException([
+                'content' => ['Preview content is too long.'],
+            ]);
+        }
 
         $xml = $this->formatter->parse($content, null, $actor);
         $html = $this->formatter->render($xml, null, $request);
