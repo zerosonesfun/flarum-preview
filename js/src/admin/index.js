@@ -9,7 +9,7 @@ export { default as extend } from './extend.js';
 
 app.initializers.add('zerosonesfun-preview-admin', () => {
   app.registry
-    .for('zerosonesfun-flarum-preview')
+    .for('zerosonesfun-preview')
     .registerSetting(
       {
         setting: 'zerosonesfun_preview.preview_on_click_mode',
