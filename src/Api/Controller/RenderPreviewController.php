@@ -16,12 +16,9 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 class RenderPreviewController implements RequestHandlerInterface
 {
-    /** @var Formatter */
-    protected $formatter;
-
-    public function __construct(Formatter $formatter)
-    {
-        $this->formatter = $formatter;
+    public function __construct(
+        protected Formatter $formatter
+    ) {
     }
 
     public function handle(ServerRequestInterface $request): ResponseInterface
