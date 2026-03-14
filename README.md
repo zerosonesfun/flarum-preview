@@ -2,6 +2,8 @@
 
 This is the **Flarum 2.0** compatible version of the extension. It lives in the **2.x** branch (or in the `2.0/` folder when developing). The **main** branch contains the 1.8.x version.
 
+> **Branches are separate.** Do **not** merge 2.x into main. `main` = Flarum 1.x, `2.x` = Flarum 2.x. They are independent release lines.
+
 Live preview for the Flarum composer. **Textarea is always the source of truth** (raw Markdown/BBCode); preview is either a split panel below the editor or a full toggle via the eye button.
 
 ## Requirements
